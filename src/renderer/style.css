@@ -819,3 +819,28 @@ input {
 .recent-repos-list {
   margin-top: 0.5rem;
 }
+
+.context-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0;
+  z-index: 9999;
+  min-width: 200px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.context-menu-item {
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.15s;
+  margin: 2px 0;
+}
+
+.context-menu-item:hover {
+  background: #2a2a2a;
+}
