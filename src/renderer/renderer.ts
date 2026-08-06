@@ -85,6 +85,7 @@ const clearTerminalBtn = document.getElementById('clear-terminal-btn') as HTMLBu
 // ----- State -----
 let currentRepoPath: string | null = null;
 let currentRemoteUrl: string | null = null;
+let currentTokenValue: string | null = null; // holds the real token for display
 
 // ----- View switching -----
 function activateView(viewName: string) {
@@ -349,18 +350,44 @@ async function loadRepoSettingsFields() {
   if (creds) {
     repoSettingsUsername.value = creds.username || '';
     repoSettingsEmail.value = creds.email || '';
-    repoSettingsToken.value = ''; // never fill
+    if (creds.token) {
+      // Show a mask and store the real token for later reveal
+      repoSettingsToken.value = '••••••••';
+      repoSettingsToken.type = 'password';
+      currentTokenValue = creds.token;
+      toggleTokenBtn.textContent = '👁️';
+    } else {
+      repoSettingsToken.value = '';
+      currentTokenValue = null;
+    }
+  } else {
+    repoSettingsUsername.value = '';
+    repoSettingsEmail.value = '';
+    repoSettingsToken.value = '';
+    currentTokenValue = null;
   }
 }
 
 // Token visibility toggle
-toggleTokenBtn.addEventListener('click', () => {
+toggleTokenBtn.addEventListener('click', async () => {
   const input = repoSettingsToken;
   if (input.type === 'password') {
-    input.type = 'text';
-    toggleTokenBtn.textContent = '🙈';
+    // Reveal: if we don't have the real token yet, fetch it
+    if (!currentTokenValue) {
+      const creds = await window.electronAPI.getRepoCredentials(currentRepoPath!);
+      if (creds && creds.token) {
+        currentTokenValue = creds.token;
+      }
+    }
+    if (currentTokenValue) {
+      input.type = 'text';
+      input.value = currentTokenValue;
+      toggleTokenBtn.textContent = '🙈';
+    }
   } else {
+    // Hide again: replace with mask
     input.type = 'password';
+    input.value = '••••••••';
     toggleTokenBtn.textContent = '👁️';
   }
 });
@@ -376,7 +403,11 @@ saveRepoSettingsBtn.addEventListener('click', async () => {
   }
   await window.electronAPI.saveRepoCredentials(currentRepoPath!, username, email, token);
   repoSettingsStatus.textContent = 'Credentials saved.';
-  repoSettingsToken.value = '';
+  // After saving, show mask and store the token
+  repoSettingsToken.value = '••••••••';
+  repoSettingsToken.type = 'password';
+  currentTokenValue = token;
+  toggleTokenBtn.textContent = '👁️';
 });
 
 // "Make this a Github Repository" button
