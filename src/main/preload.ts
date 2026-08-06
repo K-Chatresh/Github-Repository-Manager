@@ -18,8 +18,11 @@ const IPC = {
   GET_REPO_CREDENTIALS: 'get-repo-credentials',
   READ_FILE: 'read-file',
   GET_OVERVIEW_DATA: 'get-overview-data',
+  GET_GITHUB_USER: 'get-github-user',
+  GET_REPO_LIST: 'get-repo-list',
+  ADD_REPO_TO_LIST: 'add-repo-to-list',
+  REMOVE_REPO_FROM_LIST: 'remove-repo-from-list',
 } as const;
-
 contextBridge.exposeInMainWorld('electronAPI', {
   createRepo: (name: string, token: string) => ipcRenderer.invoke(IPC.CREATE_REPO, name, token),
   pushRepo: (folder: string, remoteUrl: string) => ipcRenderer.invoke(IPC.PUSH_REPO, folder, remoteUrl),
@@ -42,5 +45,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke(IPC.SAVE_REPO_CREDENTIALS, repoPath, username, email, token),
   getRepoCredentials: (repoPath: string) => ipcRenderer.invoke(IPC.GET_REPO_CREDENTIALS, repoPath),
   readFile: (filePath: string) => ipcRenderer.invoke(IPC.READ_FILE, filePath),
-  getOverviewData: (folder: string) => ipcRenderer.invoke(IPC.GET_OVERVIEW_DATA, folder),
+  getOverviewData: (folder: string, subPath?: string) => ipcRenderer.invoke(IPC.GET_OVERVIEW_DATA, folder, subPath),
+  getGitHubUser: (username: string) => ipcRenderer.invoke(IPC.GET_GITHUB_USER, username),
+  getRepoList: () => ipcRenderer.invoke(IPC.GET_REPO_LIST),
+  addRepoToList: (repoPath: string) => ipcRenderer.invoke(IPC.ADD_REPO_TO_LIST, repoPath),
+  removeRepoFromList: (repoPath: string) => ipcRenderer.invoke(IPC.REMOVE_REPO_FROM_LIST, repoPath),
 });

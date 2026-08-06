@@ -21,7 +21,7 @@ const pickFolderBtn = document.getElementById('pick-folder-btn')!;
 const repoFolderPath = document.getElementById('repo-folder-path')!;
 const repoRemoteUrl = document.getElementById('repo-remote-url')!;
 const unlinkBtn = document.getElementById('unlink-btn') as HTMLButtonElement;
-const manageRepoBtn = document.getElementById('manage-repo-btn') as HTMLButtonElement;
+// manageRepoBtn removed
 
 // Clone elements
 const showCloneFormBtn = document.getElementById('show-clone-form-btn') as HTMLButtonElement;
@@ -42,6 +42,21 @@ const fileTreeContainer = document.getElementById('file-tree-container')!;
 const repoCommitBtn = document.getElementById('repo-commit-btn') as HTMLButtonElement;
 const repoUnlinkBtn = document.getElementById('repo-unlink-btn') as HTMLButtonElement;
 const repoOverviewContent = document.getElementById('repo-overview-content')!;
+const overviewRepoName = document.getElementById('overview-repo-name')!;
+const overviewOwnerCard = document.getElementById('overview-owner-card')!;
+const ownerAvatar = document.getElementById('owner-avatar') as HTMLImageElement;
+const ownerUsername = document.getElementById('owner-username')!;
+
+// Repo list elements
+const repoListContainer = document.getElementById('repo-list-container')!;
+const repoListDiv = document.getElementById('repo-list')!;
+const repoListEmpty = document.getElementById('repo-list-empty')!;
+const repoBackBtn = document.getElementById('repo-back-btn') as HTMLButtonElement;
+const repoDetailName = document.getElementById('repo-detail-name')!;
+
+// Recent repos on Dashboard
+const recentReposSection = document.getElementById('recent-repos-section')!;
+const recentReposList = document.getElementById('recent-repos-list')!;
 
 // Repo tabs
 const repoTabs = document.querySelectorAll('.repo-tab');
@@ -83,10 +98,12 @@ const terminalOutput = document.getElementById('terminal-output')!;
 const clearTerminalBtn = document.getElementById('clear-terminal-btn') as HTMLButtonElement;
 
 // ----- State -----
-let currentRepoPath: string | null = null;
+let currentRepoPath: string | null = null; // currently managed repo (Dashboard)
 let currentRemoteUrl: string | null = null;
 let currentTokenValue: string | null = null;
-let pendingOpenFile: string | null = null; // file path to open after switching tabs
+let pendingOpenFile: string | null = null;
+let currentOverviewPath: string = '';
+let viewingRepoPath: string | null = null; // repo being viewed in Repositories tab
 
 // ----- View switching -----
 function activateView(viewName: string) {
@@ -96,8 +113,12 @@ function activateView(viewName: string) {
   sidebarItems.forEach(item => {
     item.classList.toggle('active', item.getAttribute('data-view') === viewName);
   });
-  if (viewName === 'repositories' && currentRepoPath) {
-    showRepoContent();
+  if (viewName === 'repositories') {
+    if (viewingRepoPath) {
+      showRepoDetail(viewingRepoPath);
+    } else {
+      showRepoList();
+    }
   }
 }
 
@@ -106,6 +127,12 @@ sidebarItems.forEach(item => {
     const view = item.getAttribute('data-view')!;
     activateView(view);
   });
+});
+
+// Back button
+repoBackBtn.addEventListener('click', () => {
+  viewingRepoPath = null;
+  showRepoList();
 });
 
 // ----- Repo tab switching -----
@@ -151,12 +178,35 @@ async function initialize() {
   }
 }
 
-function showEmptyState() {
+async function showEmptyState() {
   dashboardEmpty.style.display = 'flex';
   dashboardRepo.style.display = 'none';
   if (cloneFormSection) cloneFormSection.style.display = 'none';
+  
+  // Load recent repos
+  const list = await window.electronAPI.getRepoList();
+  if (list.length > 0) {
+    recentReposSection.style.display = 'block';
+    const recent = list.slice(0, 3);
+    recentReposList.innerHTML = recent.map(repo => `
+      <div class="repo-card-item">
+        <span class="repo-path">${escapeHtml(repo.path)}</span>
+        <button class="btn-primary manage-dashboard-repo-btn" data-path="${escapeHtml(repo.path)}">Manage</button>
+      </div>
+    `).join('');
+    // Event delegation on the parent container (remove old listeners first)
+    recentReposList.onclick = (e) => {
+      const target = (e.target as HTMLElement).closest('.manage-dashboard-repo-btn');
+      if (target) {
+        const path = (target as HTMLElement).dataset.path!;
+        showRepoDetail(path);
+        activateView('repositories');
+      }
+    };
+  } else {
+    recentReposSection.style.display = 'none';
+  }
 }
-
 async function showRepoCard(folder: string, remoteUrl: string | null) {
   dashboardEmpty.style.display = 'none';
   dashboardRepo.style.display = 'block';
@@ -165,6 +215,28 @@ async function showRepoCard(folder: string, remoteUrl: string | null) {
     repoRemoteUrl.textContent = sanitizeUrl(remoteUrl);
   } else {
     repoRemoteUrl.textContent = 'Not linked';
+  }
+  // Refresh recent repos
+  const list = await window.electronAPI.getRepoList();
+  if (list.length > 0) {
+    recentReposSection.style.display = 'block';
+    const recent = list.slice(0, 3);
+    recentReposList.innerHTML = recent.map(repo => `
+      <div class="repo-card-item">
+        <span class="repo-path">${escapeHtml(repo.path)}</span>
+        <button class="btn-primary manage-dashboard-repo-btn" data-path="${escapeHtml(repo.path)}">Manage</button>
+      </div>
+    `).join('');
+    recentReposList.onclick = (e) => {
+      const target = (e.target as HTMLElement).closest('.manage-dashboard-repo-btn');
+      if (target) {
+        const path = (target as HTMLElement).dataset.path!;
+        showRepoDetail(path);
+        activateView('repositories');
+      }
+    };
+  } else {
+    recentReposSection.style.display = 'none';
   }
 }
 
@@ -176,6 +248,7 @@ pickFolderBtn.addEventListener('click', async () => {
   currentRepoPath = folder;
   currentRemoteUrl = null; // we'll check actual remote later
   await window.electronAPI.setCurrentRepoPath(folder);
+  await addRepoToManagedList(folder);
   // Check if it's already a git repo with a remote
   const status = await window.electronAPI.checkGitStatus(folder);
   const info = await window.electronAPI.getRepoInfo(folder);
@@ -191,6 +264,7 @@ createLocalRepoBtn.addEventListener('click', async () => {
   currentRepoPath = folder;
   currentRemoteUrl = null;
   await window.electronAPI.setCurrentRepoPath(folder);
+  await addRepoToManagedList(folder);
   showRepoCard(folder, null);
 });
 
@@ -218,6 +292,7 @@ startCloneBtn.addEventListener('click', async () => {
     currentRepoPath = dest;
     currentRemoteUrl = info.remoteUrl;
     await window.electronAPI.setCurrentRepoPath(dest);
+    await addRepoToManagedList(dest);
     showRepoCard(dest, info.remoteUrl);
     cloneFormSection.style.display = 'none';
     cloneUrlInput.value = '';
@@ -237,43 +312,125 @@ unlinkBtn.addEventListener('click', async () => {
   showEmptyState();
 });
 
-// Dashboard: Manage button -> navigate to Repositories
-manageRepoBtn.addEventListener('click', () => {
-  activateView('repositories');
-});
+// manageRepoBtn removed
 
 // ----- Repositories view logic -----
-function showRepoContent() {
-  repoNoSelection.style.display = 'none';
+
+// Show list of managed repos
+async function showRepoList() {
+  repoListContainer.style.display = 'block';
+  repoContent.style.display = 'none';
+  
+  const list = await window.electronAPI.getRepoList();
+  if (list.length === 0) {
+    repoListEmpty.style.display = 'flex';
+    repoListDiv.innerHTML = '';
+  } else {
+    repoListEmpty.style.display = 'none';
+    repoListDiv.innerHTML = list.map(repo => `
+      <div class="repo-card-item">
+        <span class="repo-path">${escapeHtml(repo.path)}</span>
+        <button class="btn-primary manage-repo-list-btn" data-path="${escapeHtml(repo.path)}">Manage</button>
+      </div>
+    `).join('');
+    // Use event delegation
+    repoListDiv.onclick = (e) => {
+      const target = (e.target as HTMLElement).closest('.manage-repo-list-btn');
+      if (target) {
+        const path = (target as HTMLElement).dataset.path!;
+        showRepoDetail(path);
+      }
+    };
+  }
+}
+
+// Show detail for a specific repo
+async function showRepoDetail(repoPath: string) {
+  viewingRepoPath = repoPath;
+  repoListContainer.style.display = 'none';
   repoContent.style.display = 'block';
-  // Show/hide commit button based on remote
+  
+  // Set the repo name
+  const folderName = repoPath.split('/').pop() || repoPath;
+  repoDetailName.textContent = folderName;
+  
+  // Get remote info
+  const info = await window.electronAPI.getRepoInfo(repoPath);
+  currentRemoteUrl = info.remoteUrl;
+  currentRepoPath = repoPath; // for push/overview functions that rely on it
+  
+  // Show/hide commit button and load owner
   if (currentRemoteUrl) {
     repoCommitBtn.style.display = 'inline-block';
     updateCommitButtonState();
+    const match = currentRemoteUrl.match(/github\.com[:\/]([^\/]+)\/([^\/]+?)(\.git)?$/);
+    if (match) {
+      loadOwnerCard(match[1]);
+    } else {
+      overviewOwnerCard.style.display = 'none';
+    }
   } else {
     repoCommitBtn.style.display = 'none';
+    overviewOwnerCard.style.display = 'none';
   }
-  // Reset tabs to overview and load overview data
+  
+  // Reset tabs
   repoTabs.forEach(t => t.classList.remove('active'));
   repoTabs[0].classList.add('active');
   Object.values(repoPanes).forEach(p => p.classList.remove('active'));
   repoPanes.overview.classList.add('active');
   
+  currentOverviewPath = '';
   loadOverviewData();
+  
+  // Refresh settings tab if visible later
+}
+
+// Helper to add a repo to the list (call after linking/creating)
+async function addRepoToManagedList(path: string) {
+  await window.electronAPI.addRepoToList(path);
+}
+
+async function loadOwnerCard(owner: string) {
+  try {
+    const user = await window.electronAPI.getGitHubUser(owner);
+    if (user) {
+      ownerAvatar.src = user.avatar_url;
+      ownerUsername.textContent = user.login;
+      overviewOwnerCard.style.display = 'flex';
+    } else {
+      overviewOwnerCard.style.display = 'none';
+    }
+  } catch {
+    overviewOwnerCard.style.display = 'none';
+  }
 }
 
 async function loadOverviewData() {
   if (!currentRepoPath) return;
   try {
-    const data = await window.electronAPI.getOverviewData(currentRepoPath);
-    renderOverview(data.files, data.readme, data.license);
+    const data = await window.electronAPI.getOverviewData(currentRepoPath, currentOverviewPath);
+    renderOverview(data.files, data.readme, data.license, data.currentPath);
   } catch {
     repoOverviewContent.innerHTML = '<p>Error loading overview.</p>';
   }
 }
 
-function renderOverview(files: any[], readme: string | null, license: string | null) {
+function renderOverview(files: any[], readme: string | null, license: string | null, currentPath: string) {
   let html = '';
+  
+  // Breadcrumb navigation
+  html += `<div class="overview-breadcrumb">`;
+  html += `<span class="breadcrumb-item" data-path="">Root</span>`;
+  if (currentPath) {
+    const parts = currentPath.split('/');
+    let cumulative = '';
+    for (const part of parts) {
+      cumulative = cumulative ? `${cumulative}/${part}` : part;
+      html += ` <span class="breadcrumb-sep">/</span> <span class="breadcrumb-item" data-path="${cumulative}">${part}</span>`;
+    }
+  }
+  html += `</div>`;
   
   // File table
   html += `<div class="overview-file-table">`;
@@ -294,37 +451,56 @@ function renderOverview(files: any[], readme: string | null, license: string | n
   }
   html += `</div>`;
   
-  // README section
+  // README section (only at root)
   if (readme) {
     html += `<div class="overview-readme"><h3>README.md</h3><pre><code>${escapeHtml(readme)}</code></pre></div>`;
   }
   
-  // LICENSE section
+  // LICENSE section (only at root)
   if (license) {
     html += `<div class="overview-license"><h3>LICENSE</h3><pre><code>${escapeHtml(license)}</code></pre></div>`;
   }
   
   repoOverviewContent.innerHTML = html;
   
-  // Add click handlers to file rows
-  document.querySelectorAll('.file-row[data-type="file"]').forEach(row => {
+  // Click handlers for breadcrumbs
+  document.querySelectorAll('.breadcrumb-item').forEach(breadcrumb => {
+    breadcrumb.addEventListener('click', (e) => {
+      const targetPath = (breadcrumb as HTMLElement).dataset.path || '';
+      currentOverviewPath = targetPath;
+      loadOverviewData();
+    });
+  });
+  
+  // Click handlers for files and folders
+  document.querySelectorAll('.file-row[data-type="file"], .file-row[data-type="directory"]').forEach(row => {
     row.addEventListener('click', (e) => {
+      const type = (row as HTMLElement).dataset.type!;
       const filePath = (row as HTMLElement).dataset.file!;
-      // Switch to Code tab and open file
-      pendingOpenFile = filePath;
-      // Activate code tab manually
-      repoTabs.forEach(t => t.classList.remove('active'));
-      const codeTab = document.querySelector('.repo-tab[data-repo-tab="code"]');
-      if (codeTab) codeTab.classList.add('active');
-      Object.values(repoPanes).forEach(p => p.classList.remove('active'));
-      repoPanes.code.classList.add('active');
-      // Load file tree and then open the file
-      loadFileTree().then(() => {
-        if (pendingOpenFile) {
-          openFile(pendingOpenFile, pendingOpenFile.split('/').pop()!);
-          pendingOpenFile = null;
-        }
-      });
+      if (type === 'file') {
+        // Open in Code tab
+        pendingOpenFile = filePath;
+        repoTabs.forEach(t => t.classList.remove('active'));
+        const codeTab = document.querySelector('.repo-tab[data-repo-tab="code"]');
+        if (codeTab) codeTab.classList.add('active');
+        Object.values(repoPanes).forEach(p => p.classList.remove('active'));
+        repoPanes.code.classList.add('active');
+        loadFileTree().then(() => {
+          if (pendingOpenFile) {
+            openFile(pendingOpenFile, pendingOpenFile.split('/').pop()!);
+            pendingOpenFile = null;
+          }
+        });
+            } else if (type === 'directory') {
+        // Navigate into subfolder
+        // Build relative path from repo root
+        const repoRoot = currentRepoPath!;
+        let relPath = filePath.replace(repoRoot, '').replace(/\\/g, '/');
+        // Remove leading slash if present
+        if (relPath.startsWith('/')) relPath = relPath.substring(1);
+        currentOverviewPath = relPath;
+        loadOverviewData();
+      }
     });
   });
 }
@@ -378,12 +554,15 @@ repoCommitBtn.addEventListener('click', async () => {
 });
 
 repoUnlinkBtn.addEventListener('click', async () => {
-  await window.electronAPI.setCurrentRepoPath(null);
+  if (viewingRepoPath) {
+    await window.electronAPI.removeRepoFromList(viewingRepoPath);
+  }
+  viewingRepoPath = null;
   currentRepoPath = null;
   currentRemoteUrl = null;
-  repoNoSelection.style.display = 'block';
-  repoContent.style.display = 'none';
+  // Also clear Dashboard
   showEmptyState();
+  showRepoList();
 });
 
 // File tree (Code tab)
@@ -648,7 +827,15 @@ performLinkBtn.addEventListener('click', async () => {
   // Refresh UI
   settingsLinkForm.style.display = 'none';
   refreshSettingsTab();
-  showRepoContent(); // update overview
+  // Since we're already in the detail view, update overview & commit button
+  repoCommitBtn.style.display = 'inline-block';
+  updateCommitButtonState();
+  loadOverviewData();
+  // Also show the owner card
+  const match = remoteUrl.match(/github\.com[:\/]([^\/]+)\/([^\/]+?)(\.git)?$/);
+  if (match) {
+    loadOwnerCard(match[1]);
+  }
   linkStatus.textContent = 'Repository linked successfully!';
 });
 

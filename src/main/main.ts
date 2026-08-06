@@ -8,6 +8,7 @@ import { IPC } from '../shared/ipc-channels';
 
 interface StoreSchema {
   currentRepoPath: string;
+  repoList?: { path: string; addedAt: number }[];
   globalCredentials?: {
     username: string;
     email: string;
@@ -291,13 +292,35 @@ ipcMain.handle(IPC.READ_FILE, async (_, filePath: string) => {
   }
 });
 
-ipcMain.handle(IPC.GET_OVERVIEW_DATA, async (_, folder: string) => {
+ipcMain.handle(IPC.GET_OVERVIEW_DATA, async (_, folder: string, subPath: string = '') => {
   const git = simpleGit(folder);
-  // Get file tree
-  const tree = getDirectoryTree(folder);
+  const targetDir = path.join(folder, subPath);
   
-  // For each file/directory at root level, get last commit info
-  const filesInfo = await Promise.all(tree.map(async (item) => {
+  // Get file tree for the target directory
+  const tree = getDirectoryTree(targetDir);
+  
+  // Convert to relative paths for git ignore check
+  const relativePaths = tree.map(f => path.relative(folder, f.path).replace(/\\/g, '/'));
+  
+  // Check which paths are ignored by git
+  let ignored: string[] = [];
+  try {
+    ignored = await git.checkIgnore(relativePaths);
+    // checkIgnore returns paths that are ignored, with full repo-relative path
+    // Normalize them to repo-relative strings
+    ignored = ignored.map(p => p.replace(/\\/g, '/'));
+  } catch {
+    // If no .gitignore exists, nothing is ignored
+  }
+  
+  // Filter out ignored items
+  const filteredTree = tree.filter(f => {
+    const rel = path.relative(folder, f.path).replace(/\\/g, '/');
+    return !ignored.includes(rel);
+  });
+  
+  // For each remaining file/directory, get last commit info
+  const filesInfo = await Promise.all(filteredTree.map(async (item) => {
     try {
       const log = await git.raw(['log', '-1', '--format=%s|%an|%at', '--', item.path]);
       const parts = log.trim().split('|');
@@ -310,29 +333,61 @@ ipcMain.handle(IPC.GET_OVERVIEW_DATA, async (_, folder: string) => {
     }
   }));
   
-  // Read README.md content if exists
+  // README and LICENSE only for root level
   let readmeContent: string | null = null;
-  const readmePaths = ['README.md', 'readme.md', 'Readme.md', 'README', 'readme'];
-  for (const name of readmePaths) {
-    const fullPath = path.join(folder, name);
-    if (fs.existsSync(fullPath)) {
-      readmeContent = fs.readFileSync(fullPath, 'utf-8');
-      break;
-    }
-  }
-  
-  // Read LICENSE content if exists
   let licenseContent: string | null = null;
-  const licenseNames = ['LICENSE', 'license', 'License', 'LICENSE.md', 'license.md', 'LICENSE.txt', 'license.txt'];
-  for (const name of licenseNames) {
-    const fullPath = path.join(folder, name);
-    if (fs.existsSync(fullPath)) {
-      licenseContent = fs.readFileSync(fullPath, 'utf-8');
-      break;
+  if (!subPath) {
+    const readmePaths = ['README.md', 'readme.md', 'Readme.md', 'README', 'readme'];
+    for (const name of readmePaths) {
+      const fullPath = path.join(folder, name);
+      if (fs.existsSync(fullPath)) {
+        readmeContent = fs.readFileSync(fullPath, 'utf-8');
+        break;
+      }
+    }
+    const licenseNames = ['LICENSE', 'license', 'License', 'LICENSE.md', 'license.md', 'LICENSE.txt', 'license.txt'];
+    for (const name of licenseNames) {
+      const fullPath = path.join(folder, name);
+      if (fs.existsSync(fullPath)) {
+        licenseContent = fs.readFileSync(fullPath, 'utf-8');
+        break;
+      }
     }
   }
   
-  return { files: filesInfo, readme: readmeContent, license: licenseContent };
+  return { files: filesInfo, readme: readmeContent, license: licenseContent, currentPath: subPath };
+});
+
+ipcMain.handle(IPC.GET_GITHUB_USER, async (_, username: string) => {
+  try {
+    const response = await fetch(`https://api.github.com/users/${username}`);
+    if (!response.ok) throw new Error('User not found');
+    const data = await response.json();
+    return {
+      login: data.login,
+      name: data.name || data.login,
+      avatar_url: data.avatar_url,
+    };
+  } catch {
+    return null;
+  }
+});
+
+ipcMain.handle(IPC.GET_REPO_LIST, async () => {
+  const list = store.get('repoList') || [];
+  return list;
+});
+
+ipcMain.handle(IPC.ADD_REPO_TO_LIST, async (_, repoPath: string) => {
+  const list = store.get('repoList') || [];
+  const filtered = list.filter(r => r.path !== repoPath);
+  filtered.unshift({ path: repoPath, addedAt: Date.now() });
+  store.set('repoList', filtered);
+});
+
+ipcMain.handle(IPC.REMOVE_REPO_FROM_LIST, async (_, repoPath: string) => {
+  const list = store.get('repoList') || [];
+  store.set('repoList', list.filter(r => r.path !== repoPath));
 });
 
 

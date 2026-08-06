@@ -19,11 +19,16 @@ declare global {
       saveRepoCredentials: (repoPath: string, username: string, email: string, token: string) => Promise<void>;
       getRepoCredentials: (repoPath: string) => Promise<{ username: string; email: string; token: string } | null>;
       readFile: (filePath: string) => Promise<string>;
-      getOverviewData: (folder: string) => Promise<{
+      getOverviewData: (folder: string, subPath?: string) => Promise<{
         files: any[];
         readme: string | null;
         license: string | null;
+        currentPath: string;
       }>;
+      getGitHubUser: (username: string) => Promise<{ login: string; name: string; avatar_url: string } | null>;
+      getRepoList: () => Promise<{ path: string; addedAt: number }[]>;
+      addRepoToList: (repoPath: string) => Promise<void>;
+      removeRepoFromList: (repoPath: string) => Promise<void>;
     };
   }
 }

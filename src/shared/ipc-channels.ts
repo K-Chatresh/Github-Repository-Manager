@@ -22,4 +22,8 @@ export const IPC = {
   GET_REPO_CREDENTIALS: 'get-repo-credentials',
   READ_FILE: 'read-file',
   GET_OVERVIEW_DATA: 'get-overview-data',
+  GET_GITHUB_USER: 'get-github-user',
+  GET_REPO_LIST: 'get-repo-list',
+  ADD_REPO_TO_LIST: 'add-repo-to-list',
+  REMOVE_REPO_FROM_LIST: 'remove-repo-from-list',
 } as const;
