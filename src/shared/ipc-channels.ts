@@ -1,0 +1,23 @@
+export const IPC = {
+  SAVE_TOKEN: 'save-token',
+  GET_TOKEN: 'get-token',
+  CREATE_REPO: 'create-repo',
+  PUSH_REPO: 'push-repo',
+  SELECT_FOLDER: 'select-folder',
+  CHECK_GIT_STATUS: 'check-git-status',
+  INIT_GIT_REPO: 'init-git-repo',
+  LIST_FILES: 'list-files',
+  SAVE_USERNAME: 'save-username',
+  GET_USERNAME: 'get-username',
+  SET_CURRENT_REPO_PATH: 'set-current-repo-path',
+  GET_CURRENT_REPO_PATH: 'get-current-repo-path',
+  GET_REPO_INFO: 'get-repo-info',
+  SET_REMOTE: 'set-remote',
+  TERMINAL_LOG: 'terminal-log', // main → renderer
+  CHECK_PUSH_STATUS: 'check-push-status',
+  CLONE_REPO: 'clone-repo',
+  SAVE_GLOBAL_CREDENTIALS: 'save-global-credentials',
+  GET_GLOBAL_CREDENTIALS: 'get-global-credentials',
+  SAVE_REPO_CREDENTIALS: 'save-repo-credentials',
+  GET_REPO_CREDENTIALS: 'get-repo-credentials',
+} as const;

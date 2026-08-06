@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Repository Manager</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="logo-text">GRM</span>
+        <button id="sidebar-toggle" class="sidebar-toggle-btn" title="Collapse sidebar">☰</button>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="sidebar-item active" data-view="dashboard">
+          <span class="icon">🏠</span> <span class="label">Dashboard</span>
+        </li>
+        <li class="sidebar-item" data-view="repositories">
+          <span class="icon">📁</span> <span class="label">Repositories</span>
+        </li>
+        <li class="sidebar-item" data-view="terminal">
+          <span class="icon">🖥️</span> <span class="label">Terminal</span>
+        </li>
+      </ul>
+    </nav>
+    <main class="main-content">
+      <!-- Dashboard View -->
+      <div id="dashboard-view" class="view active">
+        <div id="dashboard-empty" class="empty-state">
+          <div class="empty-icon">📂</div>
+          <h2>No repository is being managed</h2>
+          <p>Choose how you want to get started:</p>
+          <div class="option-cards">
+            <div class="option-card" id="option-link">
+              <div class="option-icon">🔗</div>
+              <h3>Link Existing</h3>
+              <p>Select a local folder and connect it to GitHub.</p>
+              <button id="pick-folder-btn" class="btn-primary">Select Folder</button>
+            </div>
+            <div class="option-card" id="option-clone">
+              <div class="option-icon">⬇️</div>
+              <h3>Clone Repository</h3>
+              <p>Download a GitHub repo to your computer.</p>
+              <button id="show-clone-form-btn" class="btn-primary">Clone</button>
+            </div>
+            <div class="option-card" id="option-new">
+              <div class="option-icon">✨</div>
+              <h3>Create New</h3>
+              <p>Initialize a new local repo and link it to GitHub.</p>
+              <button id="create-local-repo-btn" class="btn-primary">Create</button>
+            </div>
+          </div>
+          <!-- Clone form (hidden by default) -->
+          <div id="clone-form-section" style="display:none; margin-top:2rem; width:100%; max-width:500px;">
+            <h3>Clone a Repository</h3>
+            <div class="field">
+              <label for="clone-url-input">GitHub URL:</label>
+              <input type="text" id="clone-url-input" placeholder="https://github.com/user/repo.git">
+            </div>
+            <div class="field">
+              <label for="clone-dest-input">Destination folder:</label>
+              <div class="folder-row">
+                <input type="text" id="clone-dest-input" readonly placeholder="Choose folder...">
+                <button id="clone-browse-btn">Browse</button>
+              </div>
+            </div>
+            <button id="start-clone-btn" class="btn-primary">Start Clone</button>
+            <button id="cancel-clone-btn" class="btn-secondary" style="margin-left:0.5rem;">Cancel</button>
+            <p id="clone-status" class="status-msg"></p>
+          </div>
+        </div>
+        <div id="dashboard-repo" class="repo-card-container" style="display:none;">
+          <div class="repo-card">
+            <h3>Current Repository</h3>
+            <p><strong>Folder:</strong> <span id="repo-folder-path"></span></p>
+            <p><strong>Remote:</strong> <span id="repo-remote-url">Not linked</span></p>
+            <div class="repo-actions">
+              <button id="unlink-btn" class="btn-secondary">Unlink</button>
+              <button id="manage-repo-btn" class="btn-primary">Manage</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Repositories View -->
+      <div id="repositories-view" class="view">
+        <div id="repo-no-selection" class="empty-state">
+          <p>No repository selected. Go to Dashboard to pick one.</p>
+        </div>
+        <div id="repo-content" style="display:none;">
+          <!-- Tab navigation -->
+          <div class="repo-tabs">
+            <button class="repo-tab active" data-repo-tab="overview">Overview</button>
+            <button class="repo-tab" data-repo-tab="code">Code</button>
+            <button class="repo-tab" data-repo-tab="settings">Settings</button>
+          </div>
+          <!-- Tab panes -->
+          <div class="repo-tab-pane active" id="repo-tab-overview">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h3>Repository Overview</h3>
+              <button id="repo-commit-btn" class="btn-primary" style="display:none;">⚡ Commit to GitHub</button>
+            </div>
+            <div id="repo-overview-content"></div>
+            <div class="repo-actions" style="margin-top:1rem;">
+              <button id="repo-unlink-btn" class="btn-secondary">Unlink</button>
+            </div>
+          </div>
+          <div class="repo-tab-pane" id="repo-tab-code">
+            <h3>Files in <span id="repo-tree-path"></span></h3>
+            <div id="file-tree-container" class="file-tree"></div>
+          </div>
+          <div class="repo-tab-pane" id="repo-tab-settings">
+            <!-- Not linked state -->
+            <div id="settings-not-linked">
+              <div class="empty-state" style="padding:2rem;">
+                <p>This is not a GitHub repository.</p>
+                <p style="font-size:0.9rem; color:#aaa;">To push this repository to GitHub, initialize it as a GitHub repository.</p>
+                <button id="make-github-btn" class="btn-primary">Make this a Github Repository</button>
+              </div>
+            </div>
+            <!-- Linked state -->
+            <div id="settings-linked" style="display:none;">
+              <p><strong>Linked to:</strong> <span id="settings-remote-display"></span></p>
+              <h3>Repository Credentials</h3>
+              <p class="hint">These credentials are used only for this repository.</p>
+              <div class="field">
+                <label for="repo-settings-username">GitHub Username:</label>
+                <input type="text" id="repo-settings-username" placeholder="username">
+              </div>
+              <div class="field">
+                <label for="repo-settings-email">GitHub Email:</label>
+                <input type="email" id="repo-settings-email" placeholder="you@example.com">
+              </div>
+              <div class="field">
+                <label for="repo-settings-token">Personal Access Token:</label>
+                <div class="input-with-eye">
+                  <input type="password" id="repo-settings-token" placeholder="ghp_...">
+                  <button id="toggle-token-visibility-btn" class="eye-btn" title="Toggle visibility">👁️</button>
+                </div>
+              </div>
+              <button id="save-repo-settings-btn" class="btn-primary">Save Credentials</button>
+              <p id="repo-settings-status" class="status-msg"></p>
+            </div>
+            <!-- Link form (hidden) -->
+            <div id="settings-link-form" style="display:none; margin-top:2rem;">
+              <h3>Link to GitHub</h3>
+              <div class="option-cards" style="margin-bottom:1rem;">
+                <div class="option-card" id="link-option-existing">
+                  <div class="option-icon">🔗</div>
+                  <h4>Existing Repository</h4>
+                  <p>Link to a repository already on GitHub.</p>
+                </div>
+                <div class="option-card" id="link-option-new">
+                  <div class="option-icon">✨</div>
+                  <h4>New Repository</h4>
+                  <p>Create a new repository on GitHub.</p>
+                </div>
+              </div>
+              <div id="link-existing-fields" style="display:none;">
+                <div class="field">
+                  <label for="link-existing-url">Repository URL:</label>
+                  <input type="text" id="link-existing-url" placeholder="https://github.com/user/repo">
+                </div>
+              </div>
+              <div id="link-new-fields" style="display:none;">
+                <div class="field">
+                  <label for="link-new-repo-name">Repository Name:</label>
+                  <input type="text" id="link-new-repo-name" placeholder="my-awesome-repo">
+                </div>
+              </div>
+              <div class="field">
+                <label for="link-username">GitHub Username:</label>
+                <input type="text" id="link-username" placeholder="username">
+              </div>
+              <div class="field">
+                <label for="link-email">GitHub Email:</label>
+                <input type="email" id="link-email" placeholder="you@example.com">
+              </div>
+              <div class="field">
+                <label for="link-token">Personal Access Token:</label>
+                <input type="password" id="link-token" placeholder="ghp_...">
+              </div>
+              <button id="perform-link-btn" class="btn-primary">Link Repository</button>
+              <button id="cancel-link-btn" class="btn-secondary" style="margin-left:0.5rem;">Cancel</button>
+              <p id="link-status" class="status-msg"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+<!-- Terminal View -->
+      <div id="terminal-view" class="view">
+        <h2>Terminal</h2>
+        <div class="terminal-output" id="terminal-output">
+          <code>Waiting for operations…</code>
+        </div>
+        <button id="clear-terminal-btn" class="btn-secondary">Clear</button>
+      </div>
+
+
+    </main>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>
