@@ -16,15 +16,10 @@ const views = {
 
 // ----- Dashboard elements -----
 const dashboardEmpty = document.getElementById('dashboard-empty')!;
-const dashboardRepo = document.getElementById('dashboard-repo')!;
-const pickFolderBtn = document.getElementById('pick-folder-btn')!;
-const repoFolderPath = document.getElementById('repo-folder-path')!;
-const repoRemoteUrl = document.getElementById('repo-remote-url')!;
-const unlinkBtn = document.getElementById('unlink-btn') as HTMLButtonElement;
-// manageRepoBtn removed
 
-// Clone elements
-const showCloneFormBtn = document.getElementById('show-clone-form-btn') as HTMLButtonElement;
+// ----- Repositories "+ New" elements -----
+const newRepoBtn = document.getElementById('new-repo-btn') as HTMLButtonElement;
+const newRepoMenu = document.getElementById('new-repo-menu')!;
 const cloneFormSection = document.getElementById('clone-form-section')!;
 const cloneUrlInput = document.getElementById('clone-url-input') as HTMLInputElement;
 const cloneDestInput = document.getElementById('clone-dest-input') as HTMLInputElement;
@@ -32,7 +27,6 @@ const cloneBrowseBtn = document.getElementById('clone-browse-btn') as HTMLButton
 const startCloneBtn = document.getElementById('start-clone-btn') as HTMLButtonElement;
 const cancelCloneBtn = document.getElementById('cancel-clone-btn') as HTMLButtonElement;
 const cloneStatus = document.getElementById('clone-status')!;
-const createLocalRepoBtn = document.getElementById('create-local-repo-btn') as HTMLButtonElement;
 
 // ----- Repositories view elements -----
 const repoNoSelection = document.getElementById('repo-no-selection')!;
@@ -57,6 +51,7 @@ const repoDetailName = document.getElementById('repo-detail-name')!;
 // Recent repos on Dashboard
 const recentReposSection = document.getElementById('recent-repos-section')!;
 const recentReposList = document.getElementById('recent-repos-list')!;
+const appBanner = document.getElementById('app-banner')!;
 
 // Repo tabs
 const repoTabs = document.querySelectorAll('.repo-tab');
@@ -160,65 +155,21 @@ repoTabs.forEach(tab => {
 async function initialize() {
   const savedPath = await window.electronAPI.getCurrentRepoPath();
   if (savedPath) {
+    // Keep the repo as current but don't display a card; just refresh recent list
+    currentRepoPath = savedPath;
     try {
       const info = await window.electronAPI.getRepoInfo(savedPath);
-      if (info.folder) {
-        currentRepoPath = info.folder;
-        currentRemoteUrl = info.remoteUrl;
-        showRepoCard(info.folder, info.remoteUrl);
-      } else {
-        await window.electronAPI.setCurrentRepoPath(null);
-        showEmptyState();
-      }
+      currentRemoteUrl = info.remoteUrl;
     } catch {
-      showEmptyState();
+      currentRemoteUrl = null;
     }
-  } else {
-    showEmptyState();
   }
+  await refreshRecentRepos();
 }
-
-async function showEmptyState() {
-  dashboardEmpty.style.display = 'flex';
-  dashboardRepo.style.display = 'none';
-  if (cloneFormSection) cloneFormSection.style.display = 'none';
-  
-  // Load recent repos
+async function refreshRecentRepos() {
   const list = await window.electronAPI.getRepoList();
   if (list.length > 0) {
-    recentReposSection.style.display = 'block';
-    const recent = list.slice(0, 3);
-    recentReposList.innerHTML = recent.map(repo => `
-      <div class="repo-card-item">
-        <span class="repo-path">${escapeHtml(repo.path)}</span>
-        <button class="btn-primary manage-dashboard-repo-btn" data-path="${escapeHtml(repo.path)}">Manage</button>
-      </div>
-    `).join('');
-    // Event delegation on the parent container (remove old listeners first)
-    recentReposList.onclick = (e) => {
-      const target = (e.target as HTMLElement).closest('.manage-dashboard-repo-btn');
-      if (target) {
-        const path = (target as HTMLElement).dataset.path!;
-        showRepoDetail(path);
-        activateView('repositories');
-      }
-    };
-  } else {
-    recentReposSection.style.display = 'none';
-  }
-}
-async function showRepoCard(folder: string, remoteUrl: string | null) {
-  dashboardEmpty.style.display = 'none';
-  dashboardRepo.style.display = 'block';
-  repoFolderPath.textContent = folder;
-  if (remoteUrl) {
-    repoRemoteUrl.textContent = sanitizeUrl(remoteUrl);
-  } else {
-    repoRemoteUrl.textContent = 'Not linked';
-  }
-  // Refresh recent repos
-  const list = await window.electronAPI.getRepoList();
-  if (list.length > 0) {
+    dashboardEmpty.style.display = 'none';
     recentReposSection.style.display = 'block';
     const recent = list.slice(0, 3);
     recentReposList.innerHTML = recent.map(repo => `
@@ -236,40 +187,53 @@ async function showRepoCard(folder: string, remoteUrl: string | null) {
       }
     };
   } else {
+    dashboardEmpty.style.display = 'flex';
     recentReposSection.style.display = 'none';
   }
 }
-
-// Dashboard: Link existing folder
-pickFolderBtn.addEventListener('click', async () => {
-  const folder = await window.electronAPI.selectFolder();
-  if (!folder) return;
-  // No automatic init – just store the folder
+async function navigateToRepo(folder: string) {
   currentRepoPath = folder;
-  currentRemoteUrl = null; // we'll check actual remote later
-  await window.electronAPI.setCurrentRepoPath(folder);
   await addRepoToManagedList(folder);
-  // Check if it's already a git repo with a remote
-  const status = await window.electronAPI.checkGitStatus(folder);
-  const info = await window.electronAPI.getRepoInfo(folder);
-  currentRemoteUrl = info.remoteUrl;
-  showRepoCard(folder, info.remoteUrl);
+  await refreshRecentRepos();
+  showRepoDetail(folder);
+  activateView('repositories');
+}
+
+// "+ New" button toggle menu
+newRepoBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  newRepoMenu.style.display = newRepoMenu.style.display === 'block' ? 'none' : 'block';
 });
 
-// Dashboard: Create new local repo (just init)
-createLocalRepoBtn.addEventListener('click', async () => {
-  const folder = await window.electronAPI.selectFolder();
-  if (!folder) return;
-  await window.electronAPI.initGitRepo(folder);
-  currentRepoPath = folder;
-  currentRemoteUrl = null;
-  await window.electronAPI.setCurrentRepoPath(folder);
-  await addRepoToManagedList(folder);
-  showRepoCard(folder, null);
+// Close menu when clicking outside
+document.addEventListener('click', () => {
+  newRepoMenu.style.display = 'none';
 });
 
-// Dashboard: Clone
-showCloneFormBtn.addEventListener('click', () => { cloneFormSection.style.display = 'block'; });
+// Menu item clicks
+newRepoMenu.addEventListener('click', async (e) => {
+  const target = (e.target as HTMLElement).closest('.context-menu-item') as HTMLElement;
+  if (!target) return;
+  const action = target.dataset.action;
+  newRepoMenu.style.display = 'none';
+
+  if (action === 'link') {
+    const folder = await window.electronAPI.selectFolder();
+    if (!folder) return;
+    await window.electronAPI.setCurrentRepoPath(folder);
+    await navigateToRepo(folder);
+  } else if (action === 'create') {
+    const folder = await window.electronAPI.selectFolder();
+    if (!folder) return;
+    await window.electronAPI.initGitRepo(folder);
+    await window.electronAPI.setCurrentRepoPath(folder);
+    await navigateToRepo(folder);
+  } else if (action === 'clone') {
+    cloneFormSection.style.display = 'block';
+  }
+});
+
+// Clone form events (unchanged, but now inside Repositories view)
 cloneBrowseBtn.addEventListener('click', async () => {
   const folder = await window.electronAPI.selectFolder();
   if (folder) cloneDestInput.value = folder;
@@ -292,8 +256,7 @@ startCloneBtn.addEventListener('click', async () => {
     currentRepoPath = dest;
     currentRemoteUrl = info.remoteUrl;
     await window.electronAPI.setCurrentRepoPath(dest);
-    await addRepoToManagedList(dest);
-    showRepoCard(dest, info.remoteUrl);
+    await navigateToRepo(dest);
     cloneFormSection.style.display = 'none';
     cloneUrlInput.value = '';
     cloneDestInput.value = '';
@@ -304,15 +267,7 @@ startCloneBtn.addEventListener('click', async () => {
   }
 });
 
-// Dashboard: Unlink
-unlinkBtn.addEventListener('click', async () => {
-  await window.electronAPI.setCurrentRepoPath(null);
-  currentRepoPath = null;
-  currentRemoteUrl = null;
-  showEmptyState();
-});
-
-// manageRepoBtn removed
+// (Unlink on Dashboard removed – now use the Repositories detail Unlink button)
 
 // ----- Repositories view logic -----
 
@@ -560,8 +515,8 @@ repoUnlinkBtn.addEventListener('click', async () => {
   viewingRepoPath = null;
   currentRepoPath = null;
   currentRemoteUrl = null;
-  // Also clear Dashboard
-  showEmptyState();
+  // Refresh Dashboard's recent repos list
+  refreshRecentRepos();
   showRepoList();
 });
 

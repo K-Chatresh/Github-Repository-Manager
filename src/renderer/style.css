@@ -780,6 +780,35 @@ input {
   margin: 0;
 }
 
+/* Banner */
+.app-banner {
+  text-align: center;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #0a0a0a 0%, #111 100%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.banner-icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.app-banner h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--green);
+}
+
+.app-banner p {
+  color: #aaa;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
 /* Recent repos on dashboard */
 .recent-repos-section {
   text-align: left;

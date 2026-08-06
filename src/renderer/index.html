@@ -28,32 +28,45 @@
     <main class="main-content">
       <!-- Dashboard View -->
       <div id="dashboard-view" class="view active">
-        <div id="dashboard-empty" class="empty-state">
+        <div id="dashboard-empty" class="empty-state" style="display:none;">
           <div class="empty-icon">📂</div>
           <h2>No repository is being managed</h2>
-          <p>Choose how you want to get started:</p>
-          <div class="option-cards">
-            <div class="option-card" id="option-link">
-              <div class="option-icon">🔗</div>
-              <h3>Link Existing</h3>
-              <p>Select a local folder and connect it to GitHub.</p>
-              <button id="pick-folder-btn" class="btn-primary">Select Folder</button>
-            </div>
-            <div class="option-card" id="option-clone">
-              <div class="option-icon">⬇️</div>
-              <h3>Clone Repository</h3>
-              <p>Download a GitHub repo to your computer.</p>
-              <button id="show-clone-form-btn" class="btn-primary">Clone</button>
-            </div>
-            <div class="option-card" id="option-new">
-              <div class="option-icon">✨</div>
-              <h3>Create New</h3>
-              <p>Initialize a new local repo and link it to GitHub.</p>
-              <button id="create-local-repo-btn" class="btn-primary">Create</button>
+          <p>Use the "+ New" button in the Repositories tab to add one.</p>
+        </div>
+        <!-- App description banner -->
+        <div id="app-banner" class="app-banner">
+          <div class="banner-icon">🚀</div>
+          <h2>GitHub Repository Manager</h2>
+          <p>Push, clone, and manage all your GitHub repositories without ever typing a token in the terminal again. <br>Select a folder, link it to GitHub, and push with one click — all from a single desktop app.</p>
+        </div>
+        <!-- Recent repositories (always visible) -->
+        <div id="recent-repos-section" class="recent-repos-section" style="display:none; margin-top:2rem;">
+          <h3>Recently Managed Repositories</h3>
+          <div id="recent-repos-list" class="repo-list recent-repos-list"></div>
+        </div>
+      </div>
+
+      <!-- Repositories View -->
+      <div id="repositories-view" class="view">
+        <!-- Repo list (when no repo is being viewed) -->
+        <div id="repo-list-container">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <h2>Managed Repositories</h2>
+            <div style="position:relative;">
+              <button id="new-repo-btn" class="btn-primary">+ New</button>
+              <div id="new-repo-menu" class="context-menu" style="display:none;">
+                <div class="context-menu-item" data-action="link">🔗 Link existing folder</div>
+                <div class="context-menu-item" data-action="create">✨ Create new repository</div>
+                <div class="context-menu-item" data-action="clone">⬇️ Clone repository</div>
+              </div>
             </div>
           </div>
+          <div id="repo-list" class="repo-list"></div>
+          <div id="repo-list-empty" class="empty-state">
+            <p>No repositories yet. Use the "+ New" button to add one.</p>
+          </div>
           <!-- Clone form (hidden by default) -->
-          <div id="clone-form-section" style="display:none; margin-top:2rem; width:100%; max-width:500px;">
+          <div id="clone-form-section" style="display:none; margin-top:2rem;">
             <h3>Clone a Repository</h3>
             <div class="field">
               <label for="clone-url-input">GitHub URL:</label>
@@ -69,34 +82,6 @@
             <button id="start-clone-btn" class="btn-primary">Start Clone</button>
             <button id="cancel-clone-btn" class="btn-secondary" style="margin-left:0.5rem;">Cancel</button>
             <p id="clone-status" class="status-msg"></p>
-          </div>
-        </div>
-        <!-- Recent repositories (always visible) -->
-        <div id="recent-repos-section" class="recent-repos-section" style="display:none; margin-top:2rem;">
-          <h3>Recently Managed Repositories</h3>
-          <div id="recent-repos-list" class="repo-list recent-repos-list"></div>
-        </div>
-        <div id="dashboard-repo" class="repo-card-container" style="display:none;">
-          <div class="repo-card">
-            <h3>Current Repository</h3>
-            <p><strong>Folder:</strong> <span id="repo-folder-path"></span></p>
-            <p><strong>Remote:</strong> <span id="repo-remote-url">Not linked</span></p>
-            <div class="repo-actions">
-              <button id="unlink-btn" class="btn-secondary">Unlink</button>
-              <button id="manage-repo-btn" class="btn-primary">Manage</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Repositories View -->
-      <div id="repositories-view" class="view">
-        <!-- Repo list (when no repo is being viewed) -->
-        <div id="repo-list-container">
-          <h2>Managed Repositories</h2>
-          <div id="repo-list" class="repo-list"></div>
-          <div id="repo-list-empty" class="empty-state">
-            <p>No repositories yet. Use the Dashboard to add one.</p>
           </div>
         </div>
 
