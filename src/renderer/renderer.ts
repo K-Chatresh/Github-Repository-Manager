@@ -217,18 +217,59 @@ newRepoMenu.addEventListener('click', async (e) => {
   const action = target.dataset.action;
   newRepoMenu.style.display = 'none';
 
-  if (action === 'link') {
+  if (action === 'create') {
+    // Create New GitHub Repository
+    const repoName = prompt('Enter the new repository name:');
+    if (!repoName) return;
     const folder = await window.electronAPI.selectFolder();
     if (!folder) return;
-    await window.electronAPI.setCurrentRepoPath(folder);
-    await navigateToRepo(folder);
-  } else if (action === 'create') {
+
+    // Ensure we have credentials (use the first stored credential, or ask to set them in Settings)
+    const creds = await window.electronAPI.getRepoCredentials(folder);
+    if (!creds || !creds.token) {
+      alert('No credentials found. Please set your GitHub username, email, and token in the repository Settings.');
+      return;
+    }
+
+    try {
+      const cloneUrl = await window.electronAPI.createRepo(repoName.replace(/\s+/g, '-'), creds.token);
+      // Init git in the folder if needed
+      const gitStatus = await window.electronAPI.checkGitStatus(folder);
+      if (!gitStatus.isRepo) await window.electronAPI.initGitRepo(folder);
+      await window.electronAPI.setRemote(folder, cloneUrl);
+      await window.electronAPI.setCurrentRepoPath(folder);
+      await addRepoToManagedList(folder);
+      await refreshRecentRepos();
+      showRepoDetail(folder);
+      activateView('repositories');
+    } catch (e: any) {
+      alert('Error creating repository: ' + e.message);
+    }
+
+  } else if (action === 'link') {
+    // Link an Existing GitHub Repository
     const folder = await window.electronAPI.selectFolder();
     if (!folder) return;
-    await window.electronAPI.initGitRepo(folder);
-    await window.electronAPI.setCurrentRepoPath(folder);
-    await navigateToRepo(folder);
+    let url = prompt('Enter the GitHub repository URL (with or without .git):');
+    if (!url) return;
+    if (!url.endsWith('.git')) url += '.git';
+
+    try {
+      // Init git if needed
+      const gitStatus = await window.electronAPI.checkGitStatus(folder);
+      if (!gitStatus.isRepo) await window.electronAPI.initGitRepo(folder);
+      await window.electronAPI.setRemote(folder, url);
+      await window.electronAPI.setCurrentRepoPath(folder);
+      await addRepoToManagedList(folder);
+      await refreshRecentRepos();
+      showRepoDetail(folder);
+      activateView('repositories');
+    } catch (e: any) {
+      alert('Error linking repository: ' + e.message);
+    }
+
   } else if (action === 'clone') {
+    // Clone a Repository from GitHub
     cloneFormSection.style.display = 'block';
   }
 });
