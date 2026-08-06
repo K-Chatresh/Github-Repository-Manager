@@ -282,6 +282,58 @@ ipcMain.handle(IPC.LIST_FILES, async (_, folder: string) => {
   return getDirectoryTree(folder);
 });
 
+ipcMain.handle(IPC.READ_FILE, async (_, filePath: string) => {
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    return content;
+  } catch {
+    throw new Error('Cannot read file');
+  }
+});
+
+ipcMain.handle(IPC.GET_OVERVIEW_DATA, async (_, folder: string) => {
+  const git = simpleGit(folder);
+  // Get file tree
+  const tree = getDirectoryTree(folder);
+  
+  // For each file/directory at root level, get last commit info
+  const filesInfo = await Promise.all(tree.map(async (item) => {
+    try {
+      const log = await git.raw(['log', '-1', '--format=%s|%an|%at', '--', item.path]);
+      const parts = log.trim().split('|');
+      const message = parts[0] || '';
+      const author = parts[1] || '';
+      const timestamp = parseInt(parts[2]) || 0;
+      return { ...item, lastCommitMessage: message, lastCommitAuthor: author, lastCommitTimestamp: timestamp };
+    } catch {
+      return { ...item, lastCommitMessage: '', lastCommitAuthor: '', lastCommitTimestamp: 0 };
+    }
+  }));
+  
+  // Read README.md content if exists
+  let readmeContent: string | null = null;
+  const readmePaths = ['README.md', 'readme.md', 'Readme.md', 'README', 'readme'];
+  for (const name of readmePaths) {
+    const fullPath = path.join(folder, name);
+    if (fs.existsSync(fullPath)) {
+      readmeContent = fs.readFileSync(fullPath, 'utf-8');
+      break;
+    }
+  }
+  
+  // Read LICENSE content if exists
+  let licenseContent: string | null = null;
+  const licenseNames = ['LICENSE', 'license', 'License', 'LICENSE.md', 'license.md', 'LICENSE.txt', 'license.txt'];
+  for (const name of licenseNames) {
+    const fullPath = path.join(folder, name);
+    if (fs.existsSync(fullPath)) {
+      licenseContent = fs.readFileSync(fullPath, 'utf-8');
+      break;
+    }
+  }
+  
+  return { files: filesInfo, readme: readmeContent, license: licenseContent };
+});
 
 
 ipcMain.handle(IPC.SET_CURRENT_REPO_PATH, async (_, folder: string | null) => {

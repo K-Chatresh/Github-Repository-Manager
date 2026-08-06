@@ -85,7 +85,8 @@ const clearTerminalBtn = document.getElementById('clear-terminal-btn') as HTMLBu
 // ----- State -----
 let currentRepoPath: string | null = null;
 let currentRemoteUrl: string | null = null;
-let currentTokenValue: string | null = null; // holds the real token for display
+let currentTokenValue: string | null = null;
+let pendingOpenFile: string | null = null; // file path to open after switching tabs
 
 // ----- View switching -----
 function activateView(viewName: string) {
@@ -116,7 +117,14 @@ repoTabs.forEach(tab => {
     Object.entries(repoPanes).forEach(([name, pane]) => {
       pane.classList.toggle('active', name === tabName);
     });
-    if (tabName === 'code') loadFileTree();
+    if (tabName === 'code') {
+      loadFileTree().then(() => {
+        if (pendingOpenFile) {
+          openFile(pendingOpenFile, pendingOpenFile.split('/').pop()!);
+          pendingOpenFile = null;
+        }
+      });
+    }
     if (tabName === 'settings') refreshSettingsTab();
   });
 });
@@ -238,24 +246,102 @@ manageRepoBtn.addEventListener('click', () => {
 function showRepoContent() {
   repoNoSelection.style.display = 'none';
   repoContent.style.display = 'block';
-  // Populate overview tab
-  const remote = currentRemoteUrl;
-  repoOverviewContent.innerHTML = `
-    <p><strong>Folder:</strong> ${currentRepoPath}</p>
-    <p><strong>Remote:</strong> ${remote ? sanitizeUrl(remote) : 'Not linked'}</p>
-  `;
-  // Show/hide commit button
-  if (remote) {
+  // Show/hide commit button based on remote
+  if (currentRemoteUrl) {
     repoCommitBtn.style.display = 'inline-block';
     updateCommitButtonState();
   } else {
     repoCommitBtn.style.display = 'none';
   }
-  // Reset tabs to overview
+  // Reset tabs to overview and load overview data
   repoTabs.forEach(t => t.classList.remove('active'));
   repoTabs[0].classList.add('active');
   Object.values(repoPanes).forEach(p => p.classList.remove('active'));
   repoPanes.overview.classList.add('active');
+  
+  loadOverviewData();
+}
+
+async function loadOverviewData() {
+  if (!currentRepoPath) return;
+  try {
+    const data = await window.electronAPI.getOverviewData(currentRepoPath);
+    renderOverview(data.files, data.readme, data.license);
+  } catch {
+    repoOverviewContent.innerHTML = '<p>Error loading overview.</p>';
+  }
+}
+
+function renderOverview(files: any[], readme: string | null, license: string | null) {
+  let html = '';
+  
+  // File table
+  html += `<div class="overview-file-table">`;
+  html += `<div class="file-row header">
+    <span class="file-name">Name</span>
+    <span class="file-message">Last commit</span>
+    <span class="file-time">Time</span>
+  </div>`;
+  
+  for (const file of files) {
+    const icon = file.type === 'directory' ? '📁' : '📄';
+    const timeStr = formatRelativeTime(file.lastCommitTimestamp);
+    html += `<div class="file-row" data-file="${file.path}" data-type="${file.type}" data-name="${file.name}">
+      <span class="file-name">${icon} ${file.name}</span>
+      <span class="file-message">${escapeHtml(file.lastCommitMessage)}</span>
+      <span class="file-time">${timeStr}</span>
+    </div>`;
+  }
+  html += `</div>`;
+  
+  // README section
+  if (readme) {
+    html += `<div class="overview-readme"><h3>README.md</h3><pre><code>${escapeHtml(readme)}</code></pre></div>`;
+  }
+  
+  // LICENSE section
+  if (license) {
+    html += `<div class="overview-license"><h3>LICENSE</h3><pre><code>${escapeHtml(license)}</code></pre></div>`;
+  }
+  
+  repoOverviewContent.innerHTML = html;
+  
+  // Add click handlers to file rows
+  document.querySelectorAll('.file-row[data-type="file"]').forEach(row => {
+    row.addEventListener('click', (e) => {
+      const filePath = (row as HTMLElement).dataset.file!;
+      // Switch to Code tab and open file
+      pendingOpenFile = filePath;
+      // Activate code tab manually
+      repoTabs.forEach(t => t.classList.remove('active'));
+      const codeTab = document.querySelector('.repo-tab[data-repo-tab="code"]');
+      if (codeTab) codeTab.classList.add('active');
+      Object.values(repoPanes).forEach(p => p.classList.remove('active'));
+      repoPanes.code.classList.add('active');
+      // Load file tree and then open the file
+      loadFileTree().then(() => {
+        if (pendingOpenFile) {
+          openFile(pendingOpenFile, pendingOpenFile.split('/').pop()!);
+          pendingOpenFile = null;
+        }
+      });
+    });
+  });
+}
+
+function escapeHtml(text: string) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function formatRelativeTime(timestamp: number) {
+  if (!timestamp) return '';
+  const now = Math.floor(Date.now() / 1000);
+  const diff = now - timestamp;
+  if (diff < 60) return 'now';
+  if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+  if (diff < 172800) return 'yesterday';
+  return `${Math.floor(diff / 86400)} days ago`;
 }
 
 function sanitizeUrl(url: string): string {
@@ -303,7 +389,6 @@ repoUnlinkBtn.addEventListener('click', async () => {
 // File tree (Code tab)
 async function loadFileTree() {
   if (!currentRepoPath) return;
-  repoTreePath.textContent = currentRepoPath;
   try {
     const tree = await window.electronAPI.listFiles(currentRepoPath);
     renderTree(tree, fileTreeContainer);
@@ -312,21 +397,81 @@ async function loadFileTree() {
   }
 }
 
-function renderTree(nodes: any[], container: HTMLElement) {
-  container.innerHTML = '';
-  function renderNode(node: any, indent: number = 0) {
-    const div = document.createElement('div');
-    div.className = 'tree-item ' + (node.type === 'directory' ? 'directory' : '');
-    div.style.paddingLeft = indent * 20 + 'px';
-    div.textContent = node.name;
-    container.appendChild(div);
-    if (node.children && node.type === 'directory') {
-      node.children.forEach((child: any) => renderNode(child, indent + 1));
-    }
+async function openFile(filePath: string, fileName: string) {
+  const viewerFileName = document.getElementById('viewer-file-name')!;
+  const fileContentViewer = document.getElementById('file-content-viewer')!;
+  viewerFileName.textContent = fileName;
+  try {
+    const content = await window.electronAPI.readFile(filePath);
+    fileContentViewer.textContent = content;
+  } catch {
+    fileContentViewer.textContent = 'Error reading file.';
   }
-  nodes.forEach(node => renderNode(node));
 }
 
+function renderTree(nodes: any[], container: HTMLElement) {
+  container.innerHTML = '';
+  
+  function renderNode(node: any, indent: number = 0): HTMLElement {
+    const div = document.createElement('div');
+    div.className = 'tree-item';
+    div.style.paddingLeft = indent * 16 + 'px';
+
+    if (node.type === 'directory') {
+      div.classList.add('directory');
+      
+      // Toggle icon
+      const toggle = document.createElement('span');
+      toggle.className = 'tree-toggle';
+      toggle.textContent = '▶'; // collapsed by default
+      div.appendChild(toggle);
+      
+      // Directory name
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = node.name;
+      div.appendChild(nameSpan);
+      
+      // Container for children (hidden by default)
+      const childrenContainer = document.createElement('div');
+      childrenContainer.className = 'tree-children';
+      if (node.children) {
+        node.children.forEach((child: any) => {
+          childrenContainer.appendChild(renderNode(child, indent + 1));
+        });
+      }
+      div.appendChild(childrenContainer);
+      
+      // Click to toggle collapse
+      div.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isExpanded = div.classList.contains('expanded');
+        if (isExpanded) {
+          div.classList.remove('expanded');
+          toggle.textContent = '▶';
+        } else {
+          div.classList.add('expanded');
+          toggle.textContent = '▼';
+        }
+      });
+    } else {
+      // File
+      div.classList.add('file-item');
+      div.textContent = node.name;
+      div.dataset.filePath = node.path;
+      div.style.cursor = 'pointer';
+      div.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openFile(node.path, node.name);
+      });
+    }
+    
+    return div;
+  }
+  
+  nodes.forEach(node => {
+    container.appendChild(renderNode(node));
+  });
+}
 // ----- Settings tab logic -----
 function refreshSettingsTab() {
   if (!currentRepoPath) return;

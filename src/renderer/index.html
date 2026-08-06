@@ -108,8 +108,18 @@
             </div>
           </div>
           <div class="repo-tab-pane" id="repo-tab-code">
-            <h3>Files in <span id="repo-tree-path"></span></h3>
-            <div id="file-tree-container" class="file-tree"></div>
+            <div class="code-layout">
+              <div class="file-tree-panel" id="file-tree-panel">
+                <div class="file-tree-header">Files</div>
+                <div id="file-tree-container" class="file-tree"></div>
+              </div>
+              <div class="file-viewer-panel" id="file-viewer-panel">
+                <div class="file-viewer-header">
+                  <span id="viewer-file-name">Select a file to view</span>
+                </div>
+                <pre id="file-content-viewer" class="file-content"><code>No file selected</code></pre>
+              </div>
+            </div>
           </div>
           <div class="repo-tab-pane" id="repo-tab-settings">
             <!-- Not linked state -->
@@ -203,5 +213,8 @@
     </main>
   </div>
   <script src="renderer.js"></script>
+  <footer class="app-footer">
+    <span>GitHub Repository Manager is not associated with Microsoft Corporation / GitHub.</span>
+  </footer>
 </body>
 </html>

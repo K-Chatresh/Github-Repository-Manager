@@ -20,4 +20,6 @@ export const IPC = {
   GET_GLOBAL_CREDENTIALS: 'get-global-credentials',
   SAVE_REPO_CREDENTIALS: 'save-repo-credentials',
   GET_REPO_CREDENTIALS: 'get-repo-credentials',
+  READ_FILE: 'read-file',
+  GET_OVERVIEW_DATA: 'get-overview-data',
 } as const;

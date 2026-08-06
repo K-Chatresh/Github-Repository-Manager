@@ -16,6 +16,8 @@ const IPC = {
   CLONE_REPO: 'clone-repo',
   SAVE_REPO_CREDENTIALS: 'save-repo-credentials',
   GET_REPO_CREDENTIALS: 'get-repo-credentials',
+  READ_FILE: 'read-file',
+  GET_OVERVIEW_DATA: 'get-overview-data',
 } as const;
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -39,4 +41,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveRepoCredentials: (repoPath: string, username: string, email: string, token: string) =>
     ipcRenderer.invoke(IPC.SAVE_REPO_CREDENTIALS, repoPath, username, email, token),
   getRepoCredentials: (repoPath: string) => ipcRenderer.invoke(IPC.GET_REPO_CREDENTIALS, repoPath),
+  readFile: (filePath: string) => ipcRenderer.invoke(IPC.READ_FILE, filePath),
+  getOverviewData: (folder: string) => ipcRenderer.invoke(IPC.GET_OVERVIEW_DATA, folder),
 });
