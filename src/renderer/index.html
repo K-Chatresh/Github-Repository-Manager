@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https:; font-src 'self'; connect-src 'self' https:;">
   <title>GitHub Repository Manager</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -54,11 +55,41 @@
             <h2>Managed Repositories</h2>
             <div style="position:relative; z-index: 100; overflow: visible !important;">
               <button id="new-repo-btn" class="btn-primary">+ New</button>
-              <div id="new-repo-menu" class="context-menu" style="display:none;">
-                   <div class="context-menu-item" data-action="create">✨ Create New GitHub Repository</div>
+                            <div id="new-repo-menu" class="context-menu" style="display:none;">
+                <div class="context-menu-item" data-action="create">✨ Create New GitHub Repository</div>
                 <div class="context-menu-item" data-action="link">🔗 Link an Existing GitHub Repository</div>
                 <div class="context-menu-item" data-action="clone">⬇️ Clone a Repository from GitHub</div>
               </div>
+            </div>
+          </div>
+          <!-- Inline forms (hidden) -->
+          <div id="new-repo-forms" style="display:none; margin-top:1rem;">
+            <div id="form-create" class="inline-form" style="display:none;">
+              <h3>Create New Repository</h3>
+              <div class="field">
+                <label for="form-create-name">Repository name:</label>
+                <input type="text" id="form-create-name" placeholder="my-awesome-repo">
+              </div>
+              <button id="form-create-btn" class="btn-primary">Create</button>
+              <button class="btn-secondary form-cancel-btn">Cancel</button>
+              <p id="form-create-status" class="status-msg"></p>
+            </div>
+            <div id="form-link" class="inline-form" style="display:none;">
+              <h3>Link Existing Repository</h3>
+              <div class="field">
+                <label for="form-link-url">GitHub URL:</label>
+                <input type="text" id="form-link-url" placeholder="https://github.com/user/repo">
+              </div>
+              <div class="field">
+                <label for="form-link-folder">Local folder:</label>
+                <div class="folder-row">
+                  <input type="text" id="form-link-folder" readonly placeholder="Select a folder">
+                  <button id="form-link-browse-btn" type="button">Browse</button>
+                </div>
+              </div>
+              <button id="form-link-btn" class="btn-primary">Link</button>
+              <button class="btn-secondary form-cancel-btn">Cancel</button>
+              <p id="form-link-status" class="status-msg"></p>
             </div>
           </div>
           <div id="repo-list" class="repo-list"></div>

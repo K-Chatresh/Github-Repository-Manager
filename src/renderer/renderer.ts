@@ -28,6 +28,20 @@ const startCloneBtn = document.getElementById('start-clone-btn') as HTMLButtonEl
 const cancelCloneBtn = document.getElementById('cancel-clone-btn') as HTMLButtonElement;
 const cloneStatus = document.getElementById('clone-status')!;
 
+// Inline form elements
+const newRepoForms = document.getElementById('new-repo-forms')!;
+const formCreate = document.getElementById('form-create')!;
+const formCreateName = document.getElementById('form-create-name') as HTMLInputElement;
+const formCreateBtn = document.getElementById('form-create-btn') as HTMLButtonElement;
+const formCreateStatus = document.getElementById('form-create-status')!;
+const formLink = document.getElementById('form-link')!;
+const formLinkUrl = document.getElementById('form-link-url') as HTMLInputElement;
+const formLinkFolder = document.getElementById('form-link-folder') as HTMLInputElement;
+const formLinkBrowseBtn = document.getElementById('form-link-browse-btn') as HTMLButtonElement;
+const formLinkBtn = document.getElementById('form-link-btn') as HTMLButtonElement;
+const formLinkStatus = document.getElementById('form-link-status')!;
+const formCancelBtns = document.querySelectorAll('.form-cancel-btn');
+
 // ----- Repositories view elements -----
 const repoNoSelection = document.getElementById('repo-no-selection')!;
 const repoContent = document.getElementById('repo-content')!;
@@ -218,61 +232,108 @@ newRepoMenu.addEventListener('click', async (e) => {
   newRepoMenu.style.display = 'none';
 
   if (action === 'create') {
-    // Create New GitHub Repository
-    const repoName = prompt('Enter the new repository name:');
-    if (!repoName) return;
-    const folder = await window.electronAPI.selectFolder();
-    if (!folder) return;
-
-    // Ensure we have credentials (use the first stored credential, or ask to set them in Settings)
-    const creds = await window.electronAPI.getRepoCredentials(folder);
-    if (!creds || !creds.token) {
-      alert('No credentials found. Please set your GitHub username, email, and token in the repository Settings.');
-      return;
-    }
-
-    try {
-      const cloneUrl = await window.electronAPI.createRepo(repoName.replace(/\s+/g, '-'), creds.token);
-      // Init git in the folder if needed
-      const gitStatus = await window.electronAPI.checkGitStatus(folder);
-      if (!gitStatus.isRepo) await window.electronAPI.initGitRepo(folder);
-      await window.electronAPI.setRemote(folder, cloneUrl);
-      await window.electronAPI.setCurrentRepoPath(folder);
-      await addRepoToManagedList(folder);
-      await refreshRecentRepos();
-      showRepoDetail(folder);
-      activateView('repositories');
-    } catch (e: any) {
-      alert('Error creating repository: ' + e.message);
-    }
-
+    hideAllInlineForms();
+    newRepoForms.style.display = 'block';
+    formCreate.style.display = 'block';
+    formCreateName.value = '';
+    formCreateStatus.textContent = '';
   } else if (action === 'link') {
-    // Link an Existing GitHub Repository
-    const folder = await window.electronAPI.selectFolder();
-    if (!folder) return;
-    let url = prompt('Enter the GitHub repository URL (with or without .git):');
-    if (!url) return;
-    if (!url.endsWith('.git')) url += '.git';
-
-    try {
-      // Init git if needed
-      const gitStatus = await window.electronAPI.checkGitStatus(folder);
-      if (!gitStatus.isRepo) await window.electronAPI.initGitRepo(folder);
-      await window.electronAPI.setRemote(folder, url);
-      await window.electronAPI.setCurrentRepoPath(folder);
-      await addRepoToManagedList(folder);
-      await refreshRecentRepos();
-      showRepoDetail(folder);
-      activateView('repositories');
-    } catch (e: any) {
-      alert('Error linking repository: ' + e.message);
-    }
-
+    hideAllInlineForms();
+    newRepoForms.style.display = 'block';
+    formLink.style.display = 'block';
+    formLinkUrl.value = '';
+    formLinkFolder.value = '';
+    formLinkStatus.textContent = '';
   } else if (action === 'clone') {
-    // Clone a Repository from GitHub
+    hideAllInlineForms();
     cloneFormSection.style.display = 'block';
   }
 });
+
+// Helper to hide inline forms
+function hideAllInlineForms() {
+  newRepoForms.style.display = 'none';
+  formCreate.style.display = 'none';
+  formLink.style.display = 'none';
+  cloneFormSection.style.display = 'none';
+}
+
+// Cancel buttons
+formCancelBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    hideAllInlineForms();
+  });
+});
+
+// Create form submit
+formCreateBtn.addEventListener('click', async () => {
+  const repoName = formCreateName.value.trim().replace(/\s+/g, '-');
+  if (!repoName) {
+    formCreateStatus.textContent = 'Repository name is required.';
+    return;
+  }
+  const folder = await window.electronAPI.selectFolder();
+  if (!folder) return;
+
+  // Use stored credentials
+  const creds = await window.electronAPI.getRepoCredentials(folder);
+  if (!creds || !creds.token) {
+    formCreateStatus.textContent = 'No credentials found. Set them in Repository Settings.';
+    return;
+  }
+
+  try {
+    formCreateStatus.textContent = 'Creating repository...';
+    const cloneUrl = await window.electronAPI.createRepo(repoName, creds.token);
+    const gitStatus = await window.electronAPI.checkGitStatus(folder);
+    if (!gitStatus.isRepo) await window.electronAPI.initGitRepo(folder);
+    await window.electronAPI.setRemote(folder, cloneUrl);
+    await window.electronAPI.setCurrentRepoPath(folder);
+    await addRepoToManagedList(folder);
+    await refreshRecentRepos();
+    hideAllInlineForms();
+    showRepoDetail(folder);
+    activateView('repositories');
+  } catch (e: any) {
+    formCreateStatus.textContent = 'Error: ' + e.message;
+  }
+});
+
+// Browse button for link form
+formLinkBrowseBtn.addEventListener('click', async () => {
+  const folder = await window.electronAPI.selectFolder();
+  if (folder) formLinkFolder.value = folder;
+});
+
+// Link form submit
+formLinkBtn.addEventListener('click', async () => {
+  let url = formLinkUrl.value.trim();
+  const folder = formLinkFolder.value.trim();
+  if (!url) {
+    formLinkStatus.textContent = 'GitHub URL is required.';
+    return;
+  }
+  if (!folder) {
+    formLinkStatus.textContent = 'Please select a local folder.';
+    return;
+  }
+  if (!url.endsWith('.git')) url += '.git';
+
+  try {
+    const gitStatus = await window.electronAPI.checkGitStatus(folder);
+    if (!gitStatus.isRepo) await window.electronAPI.initGitRepo(folder);
+    await window.electronAPI.setRemote(folder, url);
+    await window.electronAPI.setCurrentRepoPath(folder);
+    await addRepoToManagedList(folder);
+    await refreshRecentRepos();
+    hideAllInlineForms();
+    showRepoDetail(folder);
+    activateView('repositories');
+  } catch (e: any) {
+    formLinkStatus.textContent = 'Error: ' + e.message;
+  }
+});
+
 
 // Clone form events (unchanged, but now inside Repositories view)
 cloneBrowseBtn.addEventListener('click', async () => {
