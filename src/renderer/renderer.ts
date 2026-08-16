@@ -12,45 +12,23 @@ const views = {
   dashboard: document.getElementById('dashboard-view')!,
   repositories: document.getElementById('repositories-view')!,
   terminal: document.getElementById('terminal-view')!,
+  newrepo: document.getElementById('new-repo-view')!,
 };
 
 // ----- Dashboard elements -----
 const dashboardEmpty = document.getElementById('dashboard-empty')!;
 
-// ----- Repositories "+ New" elements -----
+// ----- "+ New" button -----
 const newRepoBtn = document.getElementById('new-repo-btn') as HTMLButtonElement;
-const newRepoMenu = document.getElementById('new-repo-menu')!;
-const cloneFormSection = document.getElementById('clone-form-section')!;
-const cloneUrlInput = document.getElementById('clone-url-input') as HTMLInputElement;
-const cloneDestInput = document.getElementById('clone-dest-input') as HTMLInputElement;
-const cloneBrowseBtn = document.getElementById('clone-browse-btn') as HTMLButtonElement;
-const startCloneBtn = document.getElementById('start-clone-btn') as HTMLButtonElement;
-const cancelCloneBtn = document.getElementById('cancel-clone-btn') as HTMLButtonElement;
-const cloneStatus = document.getElementById('clone-status')!;
-
-// Inline form elements
-const newRepoForms = document.getElementById('new-repo-forms')!;
-const formCreate = document.getElementById('form-create')!;
-const formCreateName = document.getElementById('form-create-name') as HTMLInputElement;
-const formCreateBtn = document.getElementById('form-create-btn') as HTMLButtonElement;
-const formCreateStatus = document.getElementById('form-create-status')!;
-const formLink = document.getElementById('form-link')!;
-const formLinkUrl = document.getElementById('form-link-url') as HTMLInputElement;
-const formLinkFolder = document.getElementById('form-link-folder') as HTMLInputElement;
-const formLinkBrowseBtn = document.getElementById('form-link-browse-btn') as HTMLButtonElement;
-const formLinkBtn = document.getElementById('form-link-btn') as HTMLButtonElement;
-const formLinkStatus = document.getElementById('form-link-status')!;
-const formCancelBtns = document.querySelectorAll('.form-cancel-btn');
 
 // ----- Repositories view elements -----
-const repoNoSelection = document.getElementById('repo-no-selection')!;
+
 const repoContent = document.getElementById('repo-content')!;
 const repoTreePath = document.getElementById('repo-tree-path')!;
 const fileTreeContainer = document.getElementById('file-tree-container')!;
 const repoCommitBtn = document.getElementById('repo-commit-btn') as HTMLButtonElement;
 const repoUnlinkBtn = document.getElementById('repo-unlink-btn') as HTMLButtonElement;
 const repoOverviewContent = document.getElementById('repo-overview-content')!;
-const overviewRepoName = document.getElementById('overview-repo-name')!;
 const overviewOwnerCard = document.getElementById('overview-owner-card')!;
 const ownerAvatar = document.getElementById('owner-avatar') as HTMLImageElement;
 const ownerUsername = document.getElementById('owner-username')!;
@@ -61,6 +39,61 @@ const repoListDiv = document.getElementById('repo-list')!;
 const repoListEmpty = document.getElementById('repo-list-empty')!;
 const repoBackBtn = document.getElementById('repo-back-btn') as HTMLButtonElement;
 const repoDetailName = document.getElementById('repo-detail-name')!;
+
+// New repo page elements
+const newRepoView = document.getElementById('new-repo-view')!;
+const newRepoCloseBtn = document.getElementById('new-repo-close-btn') as HTMLButtonElement;
+const newRepoTabs = document.querySelectorAll('.new-repo-tab');
+const newRepoPanes = {
+  create: document.getElementById('new-pane-create')!,
+  link: document.getElementById('new-pane-link')!,
+  clone: document.getElementById('new-pane-clone')!,
+};
+
+// Sub‑tabs (create)
+const subTabsCreate = document.querySelectorAll('#new-pane-create .sub-tab');
+const subPanesCreate = {
+  local: document.getElementById('sub-pane-local')!,
+  cloud: document.getElementById('sub-pane-cloud')!,
+};
+// Create local fields
+const createLocalName = document.getElementById('create-local-name') as HTMLInputElement;
+const createLocalFolder = document.getElementById('create-local-folder') as HTMLInputElement;
+const createLocalBrowseBtn = document.getElementById('create-local-browse-btn') as HTMLButtonElement;
+const createLocalBtn = document.getElementById('create-local-btn') as HTMLButtonElement;
+const createLocalStatus = document.getElementById('create-local-status')!;
+// Create cloud fields
+const createCloudName = document.getElementById('create-cloud-name') as HTMLInputElement;
+const createCloudFolder = document.getElementById('create-cloud-folder') as HTMLInputElement;
+const createCloudBrowseBtn = document.getElementById('create-cloud-browse-btn') as HTMLButtonElement;
+const createCloudBtn = document.getElementById('create-cloud-btn') as HTMLButtonElement;
+const createCloudStatus = document.getElementById('create-cloud-status')!;
+
+// Sub‑tabs (link)
+const subTabsLink = document.querySelectorAll('#new-pane-link .sub-tab');
+const subPanesLink = {
+  'link-local': document.getElementById('sub-pane-link-local')!,
+  'link-cloud': document.getElementById('sub-pane-link-cloud')!,
+};
+// Link local fields
+const linkLocalUrl = document.getElementById('link-local-url') as HTMLInputElement;
+const linkLocalFolder = document.getElementById('link-local-folder') as HTMLInputElement;
+const linkLocalBrowseBtn = document.getElementById('link-local-browse-btn') as HTMLButtonElement;
+const linkLocalBtn = document.getElementById('link-local-btn') as HTMLButtonElement;
+const linkLocalStatus = document.getElementById('link-local-status')!;
+// Link cloud fields
+const linkCloudUrl = document.getElementById('link-cloud-url') as HTMLInputElement;
+const linkCloudFolder = document.getElementById('link-cloud-folder') as HTMLInputElement;
+const linkCloudBrowseBtn = document.getElementById('link-cloud-browse-btn') as HTMLButtonElement;
+const linkCloudBtn = document.getElementById('link-cloud-btn') as HTMLButtonElement;
+const linkCloudStatus = document.getElementById('link-cloud-status')!;
+
+// Clone tab fields (these IDs are now in new-repo-view)
+const cloneUrlInput = document.getElementById('clone-url-input') as HTMLInputElement;
+const cloneDestInput = document.getElementById('clone-dest-input') as HTMLInputElement;
+const cloneBrowseBtn = document.getElementById('clone-browse-btn') as HTMLButtonElement;
+const startCloneBtn = document.getElementById('start-clone-btn') as HTMLButtonElement;
+const cloneStatus = document.getElementById('clone-status')!;
 
 // Recent repos on Dashboard
 const recentReposSection = document.getElementById('recent-repos-section')!;
@@ -213,112 +246,124 @@ async function navigateToRepo(folder: string) {
   activateView('repositories');
 }
 
-// "+ New" button toggle menu
-newRepoBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  newRepoMenu.style.display = newRepoMenu.style.display === 'block' ? 'none' : 'block';
+// "+ New" button: open the new-repo page
+newRepoBtn.addEventListener('click', () => {
+  activateView('newrepo');
+  // Reset to first tab
+  activateNewRepoTab('create');
 });
 
-// Close menu when clicking outside
-document.addEventListener('click', () => {
-  newRepoMenu.style.display = 'none';
+// Close button returns to repositories list
+newRepoCloseBtn.addEventListener('click', () => {
+  activateView('repositories');
+  showRepoList();
 });
 
-// Menu item clicks
-newRepoMenu.addEventListener('click', async (e) => {
-  const target = (e.target as HTMLElement).closest('.context-menu-item') as HTMLElement;
-  if (!target) return;
-  const action = target.dataset.action;
-  newRepoMenu.style.display = 'none';
-
-  if (action === 'create') {
-    hideAllInlineForms();
-    newRepoForms.style.display = 'block';
-    formCreate.style.display = 'block';
-    formCreateName.value = '';
-    formCreateStatus.textContent = '';
-  } else if (action === 'link') {
-    hideAllInlineForms();
-    newRepoForms.style.display = 'block';
-    formLink.style.display = 'block';
-    formLinkUrl.value = '';
-    formLinkFolder.value = '';
-    formLinkStatus.textContent = '';
-  } else if (action === 'clone') {
-    hideAllInlineForms();
-    cloneFormSection.style.display = 'block';
-  }
-});
-
-// Helper to hide inline forms
-function hideAllInlineForms() {
-  newRepoForms.style.display = 'none';
-  formCreate.style.display = 'none';
-  formLink.style.display = 'none';
-  cloneFormSection.style.display = 'none';
-}
-
-// Cancel buttons
-formCancelBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    hideAllInlineForms();
+// Top‑level tabs (Create / Link / Clone)
+newRepoTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    const tabName = tab.getAttribute('data-new-tab')!;
+    activateNewRepoTab(tabName);
   });
 });
 
-// Create form submit
-formCreateBtn.addEventListener('click', async () => {
-  const repoName = formCreateName.value.trim().replace(/\s+/g, '-');
-  if (!repoName) {
-    formCreateStatus.textContent = 'Repository name is required.';
-    return;
-  }
-  const folder = await window.electronAPI.selectFolder();
-  if (!folder) return;
+function activateNewRepoTab(tabName: string) {
+  newRepoTabs.forEach(t => t.classList.toggle('active', t.getAttribute('data-new-tab') === tabName));
+  Object.entries(newRepoPanes).forEach(([name, pane]) => {
+    pane.classList.toggle('active', name === tabName);
+  });
+  // Reset sub‑tabs to first
+  if (tabName === 'create') activateSubTab(subTabsCreate, subPanesCreate, 'local');
+  if (tabName === 'link') activateSubTab(subTabsLink, subPanesLink, 'link-local');
+}
 
-  // Use stored credentials
+function activateSubTab(tabs: NodeListOf<Element>, panes: Record<string, HTMLElement>, key: string) {
+  tabs.forEach(t => t.classList.toggle('active', t.getAttribute('data-sub-tab') === key));
+  Object.entries(panes).forEach(([name, pane]) => pane.classList.toggle('active', name === key));
+}
+
+// Sub‑tab click handlers
+subTabsCreate.forEach(tab => {
+  tab.addEventListener('click', () => {
+    const key = tab.getAttribute('data-sub-tab')!;
+    activateSubTab(subTabsCreate, subPanesCreate, key);
+  });
+});
+subTabsLink.forEach(tab => {
+  tab.addEventListener('click', () => {
+    const key = tab.getAttribute('data-sub-tab')!;
+    activateSubTab(subTabsLink, subPanesLink, key);
+  });
+});
+
+// ---------- Create local ----------
+createLocalBrowseBtn.addEventListener('click', async () => {
+  const folder = await window.electronAPI.selectFolder();
+  if (folder) createLocalFolder.value = folder;
+});
+createLocalBtn.addEventListener('click', async () => {
+  const name = createLocalName.value.trim().replace(/\s+/g, '-');
+  const folder = createLocalFolder.value.trim();
+  if (!name) { createLocalStatus.textContent = 'Name is required.'; return; }
+  if (!folder) { createLocalStatus.textContent = 'Select a folder.'; return; }
+  try {
+    createLocalStatus.textContent = 'Initializing...';
+    await window.electronAPI.initGitRepo(folder);
+    await window.electronAPI.setCurrentRepoPath(folder);
+    await addRepoToManagedList(folder);
+    await refreshRecentRepos();
+    createLocalStatus.textContent = 'Local repository created.';
+    showRepoDetail(folder);
+    activateView('repositories');
+  } catch (e: any) {
+    createLocalStatus.textContent = 'Error: ' + e.message;
+  }
+});
+
+// ---------- Create cloud ----------
+createCloudBrowseBtn.addEventListener('click', async () => {
+  const folder = await window.electronAPI.selectFolder();
+  if (folder) createCloudFolder.value = folder;
+});
+createCloudBtn.addEventListener('click', async () => {
+  const name = createCloudName.value.trim().replace(/\s+/g, '-');
+  const folder = createCloudFolder.value.trim();
+  if (!name) { createCloudStatus.textContent = 'Name is required.'; return; }
+  if (!folder) { createCloudStatus.textContent = 'Select a folder.'; return; }
+
   const creds = await window.electronAPI.getRepoCredentials(folder);
   if (!creds || !creds.token) {
-    formCreateStatus.textContent = 'No credentials found. Set them in Repository Settings.';
+    createCloudStatus.textContent = 'No credentials found. Set them in Repository Settings.';
     return;
   }
-
   try {
-    formCreateStatus.textContent = 'Creating repository...';
-    const cloneUrl = await window.electronAPI.createRepo(repoName, creds.token);
+    createCloudStatus.textContent = 'Creating repository on GitHub...';
+    const cloneUrl = await window.electronAPI.createRepo(name, creds.token);
     const gitStatus = await window.electronAPI.checkGitStatus(folder);
     if (!gitStatus.isRepo) await window.electronAPI.initGitRepo(folder);
     await window.electronAPI.setRemote(folder, cloneUrl);
     await window.electronAPI.setCurrentRepoPath(folder);
     await addRepoToManagedList(folder);
     await refreshRecentRepos();
-    hideAllInlineForms();
+    createCloudStatus.textContent = 'Repository created and linked.';
     showRepoDetail(folder);
     activateView('repositories');
   } catch (e: any) {
-    formCreateStatus.textContent = 'Error: ' + e.message;
+    createCloudStatus.textContent = 'Error: ' + e.message;
   }
 });
 
-// Browse button for link form
-formLinkBrowseBtn.addEventListener('click', async () => {
+// ---------- Link local ----------
+linkLocalBrowseBtn.addEventListener('click', async () => {
   const folder = await window.electronAPI.selectFolder();
-  if (folder) formLinkFolder.value = folder;
+  if (folder) linkLocalFolder.value = folder;
 });
-
-// Link form submit
-formLinkBtn.addEventListener('click', async () => {
-  let url = formLinkUrl.value.trim();
-  const folder = formLinkFolder.value.trim();
-  if (!url) {
-    formLinkStatus.textContent = 'GitHub URL is required.';
-    return;
-  }
-  if (!folder) {
-    formLinkStatus.textContent = 'Please select a local folder.';
-    return;
-  }
+linkLocalBtn.addEventListener('click', async () => {
+  let url = linkLocalUrl.value.trim();
+  const folder = linkLocalFolder.value.trim();
+  if (!url) { linkLocalStatus.textContent = 'URL is required.'; return; }
+  if (!folder) { linkLocalStatus.textContent = 'Select a folder.'; return; }
   if (!url.endsWith('.git')) url += '.git';
-
   try {
     const gitStatus = await window.electronAPI.checkGitStatus(folder);
     if (!gitStatus.isRepo) await window.electronAPI.initGitRepo(folder);
@@ -326,25 +371,44 @@ formLinkBtn.addEventListener('click', async () => {
     await window.electronAPI.setCurrentRepoPath(folder);
     await addRepoToManagedList(folder);
     await refreshRecentRepos();
-    hideAllInlineForms();
+    linkLocalStatus.textContent = 'Repository linked.';
     showRepoDetail(folder);
     activateView('repositories');
   } catch (e: any) {
-    formLinkStatus.textContent = 'Error: ' + e.message;
+    linkLocalStatus.textContent = 'Error: ' + e.message;
   }
 });
 
+// ---------- Link cloud (clone & link) ----------
+linkCloudBrowseBtn.addEventListener('click', async () => {
+  const folder = await window.electronAPI.selectFolder();
+  if (folder) linkCloudFolder.value = folder;
+});
+linkCloudBtn.addEventListener('click', async () => {
+  const url = linkCloudUrl.value.trim();
+  const dest = linkCloudFolder.value.trim();
+  if (!url || !dest) { linkCloudStatus.textContent = 'URL and destination are required.'; return; }
+  try {
+    linkCloudStatus.textContent = 'Cloning...';
+    await window.electronAPI.cloneRepo(url, dest);
+    const info = await window.electronAPI.getRepoInfo(dest);
+    currentRepoPath = dest;
+    currentRemoteUrl = info.remoteUrl;
+    await window.electronAPI.setCurrentRepoPath(dest);
+    await addRepoToManagedList(dest);
+    await refreshRecentRepos();
+    linkCloudStatus.textContent = 'Repository cloned and linked.';
+    showRepoDetail(dest);
+    activateView('repositories');
+  } catch (e: any) {
+    linkCloudStatus.textContent = 'Error: ' + e.message;
+  }
+});
 
-// Clone form events (unchanged, but now inside Repositories view)
+// ---------- Clone tab ----------
 cloneBrowseBtn.addEventListener('click', async () => {
   const folder = await window.electronAPI.selectFolder();
   if (folder) cloneDestInput.value = folder;
-});
-cancelCloneBtn.addEventListener('click', () => {
-  cloneFormSection.style.display = 'none';
-  cloneUrlInput.value = '';
-  cloneDestInput.value = '';
-  cloneStatus.textContent = '';
 });
 startCloneBtn.addEventListener('click', async () => {
   const url = cloneUrlInput.value.trim();
@@ -358,12 +422,13 @@ startCloneBtn.addEventListener('click', async () => {
     currentRepoPath = dest;
     currentRemoteUrl = info.remoteUrl;
     await window.electronAPI.setCurrentRepoPath(dest);
-    await navigateToRepo(dest);
-    cloneFormSection.style.display = 'none';
-    cloneUrlInput.value = '';
-    cloneDestInput.value = '';
+    await addRepoToManagedList(dest);
+    await refreshRecentRepos();
+    cloneStatus.textContent = 'Clone successful.';
+    showRepoDetail(dest);
+    activateView('repositories');
   } catch (e: any) {
-    cloneStatus.textContent = `Error: ${e.message}`;
+    cloneStatus.textContent = 'Error: ' + e.message;
   } finally {
     startCloneBtn.disabled = false;
   }

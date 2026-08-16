@@ -53,66 +53,13 @@
         <div id="repo-list-container">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
             <h2>Managed Repositories</h2>
-            <div style="position:relative; z-index: 100; overflow: visible !important;">
+            <div>
               <button id="new-repo-btn" class="btn-primary">+ New</button>
-                            <div id="new-repo-menu" class="context-menu" style="display:none;">
-                <div class="context-menu-item" data-action="create">✨ Create New GitHub Repository</div>
-                <div class="context-menu-item" data-action="link">🔗 Link an Existing GitHub Repository</div>
-                <div class="context-menu-item" data-action="clone">⬇️ Clone a Repository from GitHub</div>
-              </div>
-            </div>
-          </div>
-          <!-- Inline forms (hidden) -->
-          <div id="new-repo-forms" style="display:none; margin-top:1rem;">
-            <div id="form-create" class="inline-form" style="display:none;">
-              <h3>Create New Repository</h3>
-              <div class="field">
-                <label for="form-create-name">Repository name:</label>
-                <input type="text" id="form-create-name" placeholder="my-awesome-repo">
-              </div>
-              <button id="form-create-btn" class="btn-primary">Create</button>
-              <button class="btn-secondary form-cancel-btn">Cancel</button>
-              <p id="form-create-status" class="status-msg"></p>
-            </div>
-            <div id="form-link" class="inline-form" style="display:none;">
-              <h3>Link Existing Repository</h3>
-              <div class="field">
-                <label for="form-link-url">GitHub URL:</label>
-                <input type="text" id="form-link-url" placeholder="https://github.com/user/repo">
-              </div>
-              <div class="field">
-                <label for="form-link-folder">Local folder:</label>
-                <div class="folder-row">
-                  <input type="text" id="form-link-folder" readonly placeholder="Select a folder">
-                  <button id="form-link-browse-btn" type="button">Browse</button>
-                </div>
-              </div>
-              <button id="form-link-btn" class="btn-primary">Link</button>
-              <button class="btn-secondary form-cancel-btn">Cancel</button>
-              <p id="form-link-status" class="status-msg"></p>
             </div>
           </div>
           <div id="repo-list" class="repo-list"></div>
           <div id="repo-list-empty" class="empty-state">
             <p>No repositories yet. Use the "+ New" button to add one.</p>
-          </div>
-          <!-- Clone form (hidden by default) -->
-          <div id="clone-form-section" style="display:none; margin-top:2rem;">
-            <h3>Clone a Repository</h3>
-            <div class="field">
-              <label for="clone-url-input">GitHub URL:</label>
-              <input type="text" id="clone-url-input" placeholder="https://github.com/user/repo.git">
-            </div>
-            <div class="field">
-              <label for="clone-dest-input">Destination folder:</label>
-              <div class="folder-row">
-                <input type="text" id="clone-dest-input" readonly placeholder="Choose folder...">
-                <button id="clone-browse-btn">Browse</button>
-              </div>
-            </div>
-            <button id="start-clone-btn" class="btn-primary">Start Clone</button>
-            <button id="cancel-clone-btn" class="btn-secondary" style="margin-left:0.5rem;">Cancel</button>
-            <p id="clone-status" class="status-msg"></p>
           </div>
         </div>
 
@@ -238,6 +185,120 @@
         </div>
       </div>
 
+
+            </div> <!-- end repositories-view -->
+
+      <!-- New Repository Page -->
+      <div id="new-repo-view" class="view">
+        <div class="new-repo-nav">
+          <button class="new-repo-tab active" data-new-tab="create">Create New Repository</button>
+          <button class="new-repo-tab" data-new-tab="link">Link Existing Repository</button>
+          <button class="new-repo-tab" data-new-tab="clone">Clone Repository</button>
+          <button id="new-repo-close-btn" class="btn-secondary" style="margin-left:auto;">✕ Close</button>
+        </div>
+        <div class="new-repo-content">
+          <!-- CREATE tab -->
+          <div class="new-repo-pane active" id="new-pane-create">
+            <div class="sub-nav">
+              <button class="sub-tab active" data-sub-tab="local">Local Git Repository</button>
+              <button class="sub-tab" data-sub-tab="cloud">Direct Cloud Repository</button>
+            </div>
+            <div class="sub-pane active" id="sub-pane-local">
+              <h3>Create Local Git Repository</h3>
+              <div class="field">
+                <label for="create-local-name">Repository name:</label>
+                <input type="text" id="create-local-name" placeholder="my-awesome-repo">
+              </div>
+              <div class="field">
+                <label for="create-local-folder">Local folder:</label>
+                <div class="folder-row">
+                  <input type="text" id="create-local-folder" readonly placeholder="Select a folder">
+                  <button id="create-local-browse-btn">Browse</button>
+                </div>
+              </div>
+              <button id="create-local-btn" class="btn-primary">Create Local Repository</button>
+              <p id="create-local-status" class="status-msg"></p>
+            </div>
+            <div class="sub-pane" id="sub-pane-cloud">
+              <h3>Create Cloud Repository (GitHub)</h3>
+              <p class="hint">Creates the repository on GitHub and links it to a local folder.</p>
+              <div class="field">
+                <label for="create-cloud-name">Repository name:</label>
+                <input type="text" id="create-cloud-name" placeholder="my-awesome-repo">
+              </div>
+              <div class="field">
+                <label for="create-cloud-folder">Local folder:</label>
+                <div class="folder-row">
+                  <input type="text" id="create-cloud-folder" readonly placeholder="Select a folder">
+                  <button id="create-cloud-browse-btn">Browse</button>
+                </div>
+              </div>
+              <button id="create-cloud-btn" class="btn-primary">Create & Link</button>
+              <p id="create-cloud-status" class="status-msg"></p>
+            </div>
+          </div>
+
+          <!-- LINK tab -->
+          <div class="new-repo-pane" id="new-pane-link">
+            <div class="sub-nav">
+              <button class="sub-tab active" data-sub-tab="link-local">Local Existing GitHub Repository</button>
+              <button class="sub-tab" data-sub-tab="link-cloud">Cloud Existing GitHub Repository</button>
+            </div>
+            <div class="sub-pane active" id="sub-pane-link-local">
+              <h3>Link a Local Folder to GitHub</h3>
+              <div class="field">
+                <label for="link-local-url">GitHub URL:</label>
+                <input type="text" id="link-local-url" placeholder="https://github.com/user/repo">
+              </div>
+              <div class="field">
+                <label for="link-local-folder">Local folder:</label>
+                <div class="folder-row">
+                  <input type="text" id="link-local-folder" readonly placeholder="Select a folder">
+                  <button id="link-local-browse-btn">Browse</button>
+                </div>
+              </div>
+              <button id="link-local-btn" class="btn-primary">Link Repository</button>
+              <p id="link-local-status" class="status-msg"></p>
+            </div>
+            <div class="sub-pane" id="sub-pane-link-cloud">
+              <h3>Link by Cloning a Cloud Repository</h3>
+              <p class="hint">This will clone the remote repository into a new local folder.</p>
+              <div class="field">
+                <label for="link-cloud-url">GitHub URL:</label>
+                <input type="text" id="link-cloud-url" placeholder="https://github.com/user/repo.git">
+              </div>
+              <div class="field">
+                <label for="link-cloud-folder">Destination folder:</label>
+                <div class="folder-row">
+                  <input type="text" id="link-cloud-folder" readonly placeholder="Select a folder">
+                  <button id="link-cloud-browse-btn">Browse</button>
+                </div>
+              </div>
+              <button id="link-cloud-btn" class="btn-primary">Clone & Link</button>
+              <p id="link-cloud-status" class="status-msg"></p>
+            </div>
+          </div>
+
+          <!-- CLONE tab -->
+          <div class="new-repo-pane" id="new-pane-clone">
+            <h3>Clone a Repository from GitHub</h3>
+            <p class="hint">Download a repository to your local machine.</p>
+            <div class="field">
+              <label for="clone-url-input">GitHub URL:</label>
+              <input type="text" id="clone-url-input" placeholder="https://github.com/user/repo.git">
+            </div>
+            <div class="field">
+              <label for="clone-dest-input">Destination folder:</label>
+              <div class="folder-row">
+                <input type="text" id="clone-dest-input" readonly placeholder="Choose folder...">
+                <button id="clone-browse-btn">Browse</button>
+              </div>
+            </div>
+            <button id="start-clone-btn" class="btn-primary">Start Clone</button>
+            <p id="clone-status" class="status-msg"></p>
+          </div>
+        </div>
+      </div>
 <!-- Terminal View -->
       <div id="terminal-view" class="view">
         <h2>Terminal</h2>
