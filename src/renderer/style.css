@@ -148,7 +148,7 @@ body {
 }
 
 .view.active {
-  display: block;
+  display: block !important;
 }
 
 /* Empty state */
@@ -818,6 +818,33 @@ input {
 
 .recent-repos-list {
   margin-top: 0.5rem;
+}
+
+/* Folder picker row */
+.folder-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.folder-row input {
+  flex: 1;
+}
+
+/* Browse buttons (any button with id ending in "-browse-btn") */
+[id$="-browse-btn"] {
+  background: #21262d;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+[id$="-browse-btn"]:hover {
+  background: #30363d;
 }
 
 .context-menu {

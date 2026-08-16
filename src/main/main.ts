@@ -212,12 +212,15 @@ ipcMain.handle(IPC.CHECK_PUSH_STATUS, async (_, folder: string) => {
 });
 
 // Clone a repository
-ipcMain.handle(IPC.CLONE_REPO, async (_, repoUrl: string, destFolder: string) => {
+ipcMain.handle(IPC.CLONE_REPO, async (_, repoUrl: string, destFolder: string, providedToken?: string) => {
   const git = simpleGit();
   logToTerminal(`[CLONE] Cloning ${repoUrl} into ${destFolder}`);
   try {
-    const globalCreds = store.get('globalCredentials');
-    const token = decryptCredential(globalCreds?.token);
+    let token = providedToken || null;
+    if (!token) {
+      const globalCreds = store.get('globalCredentials');
+      token = decryptCredential(globalCreds?.token);
+    }
     let cloneUrl = repoUrl;
     if (token && repoUrl.startsWith('https://')) {
       cloneUrl = repoUrl.replace('https://', `https://${token}@`);

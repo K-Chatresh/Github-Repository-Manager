@@ -15,7 +15,7 @@ declare global {
       setRemote: (folder: string, remoteUrl: string) => Promise<boolean>;
       onTerminalLog: (callback: (message: string) => void) => () => void;
       checkPushStatus: (folder: string) => Promise<{ hasUnpushed: boolean }>;
-      cloneRepo: (repoUrl: string, destFolder: string) => Promise<boolean>;
+      cloneRepo: (repoUrl: string, destFolder: string, token?: string) => Promise<boolean>;
       saveRepoCredentials: (repoPath: string, username: string, email: string, token: string) => Promise<void>;
       getRepoCredentials: (repoPath: string) => Promise<{ username: string; email: string; token: string } | null>;
       readFile: (filePath: string) => Promise<string>;

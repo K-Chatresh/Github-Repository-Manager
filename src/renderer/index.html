@@ -185,8 +185,7 @@
         </div>
       </div>
 
-
-            </div> <!-- end repositories-view -->
+      <!-- end repositories-view -->
 
       <!-- New Repository Page -->
       <div id="new-repo-view" class="view">
@@ -233,6 +232,18 @@
                   <button id="create-cloud-browse-btn">Browse</button>
                 </div>
               </div>
+              <div class="field">
+                <label for="create-cloud-username">GitHub Username:</label>
+                <input type="text" id="create-cloud-username" placeholder="username">
+              </div>
+              <div class="field">
+                <label for="create-cloud-email">GitHub Email:</label>
+                <input type="email" id="create-cloud-email" placeholder="you@example.com">
+              </div>
+              <div class="field">
+                <label for="create-cloud-token">Personal Access Token:</label>
+                <input type="password" id="create-cloud-token" placeholder="ghp_...">
+              </div>
               <button id="create-cloud-btn" class="btn-primary">Create & Link</button>
               <p id="create-cloud-status" class="status-msg"></p>
             </div>
@@ -273,6 +284,18 @@
                   <input type="text" id="link-cloud-folder" readonly placeholder="Select a folder">
                   <button id="link-cloud-browse-btn">Browse</button>
                 </div>
+              </div>
+              <div class="field">
+                <label for="link-cloud-username">GitHub Username:</label>
+                <input type="text" id="link-cloud-username" placeholder="username">
+              </div>
+              <div class="field">
+                <label for="link-cloud-email">GitHub Email:</label>
+                <input type="email" id="link-cloud-email" placeholder="you@example.com">
+              </div>
+              <div class="field">
+                <label for="link-cloud-token">Personal Access Token:</label>
+                <input type="password" id="link-cloud-token" placeholder="ghp_...">
               </div>
               <button id="link-cloud-btn" class="btn-primary">Clone & Link</button>
               <p id="link-cloud-status" class="status-msg"></p>

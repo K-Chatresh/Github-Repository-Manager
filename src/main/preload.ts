@@ -40,7 +40,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener(IPC.TERMINAL_LOG, handler);
   },
   checkPushStatus: (folder: string) => ipcRenderer.invoke(IPC.CHECK_PUSH_STATUS, folder),
-  cloneRepo: (repoUrl: string, destFolder: string) => ipcRenderer.invoke(IPC.CLONE_REPO, repoUrl, destFolder),
+  cloneRepo: (repoUrl: string, destFolder: string, token?: string) => ipcRenderer.invoke(IPC.CLONE_REPO, repoUrl, destFolder, token),
   saveRepoCredentials: (repoPath: string, username: string, email: string, token: string) =>
     ipcRenderer.invoke(IPC.SAVE_REPO_CREDENTIALS, repoPath, username, email, token),
   getRepoCredentials: (repoPath: string) => ipcRenderer.invoke(IPC.GET_REPO_CREDENTIALS, repoPath),

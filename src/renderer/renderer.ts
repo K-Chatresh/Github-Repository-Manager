@@ -68,6 +68,9 @@ const createCloudFolder = document.getElementById('create-cloud-folder') as HTML
 const createCloudBrowseBtn = document.getElementById('create-cloud-browse-btn') as HTMLButtonElement;
 const createCloudBtn = document.getElementById('create-cloud-btn') as HTMLButtonElement;
 const createCloudStatus = document.getElementById('create-cloud-status')!;
+const createCloudUsername = document.getElementById('create-cloud-username') as HTMLInputElement;
+const createCloudEmail = document.getElementById('create-cloud-email') as HTMLInputElement;
+const createCloudToken = document.getElementById('create-cloud-token') as HTMLInputElement;
 
 // Sub‑tabs (link)
 const subTabsLink = document.querySelectorAll('#new-pane-link .sub-tab');
@@ -87,6 +90,9 @@ const linkCloudFolder = document.getElementById('link-cloud-folder') as HTMLInpu
 const linkCloudBrowseBtn = document.getElementById('link-cloud-browse-btn') as HTMLButtonElement;
 const linkCloudBtn = document.getElementById('link-cloud-btn') as HTMLButtonElement;
 const linkCloudStatus = document.getElementById('link-cloud-status')!;
+const linkCloudUsername = document.getElementById('link-cloud-username') as HTMLInputElement;
+const linkCloudEmail = document.getElementById('link-cloud-email') as HTMLInputElement;
+const linkCloudToken = document.getElementById('link-cloud-token') as HTMLInputElement;
 
 // Clone tab fields (these IDs are now in new-repo-view)
 const cloneUrlInput = document.getElementById('clone-url-input') as HTMLInputElement;
@@ -149,6 +155,7 @@ let viewingRepoPath: string | null = null; // repo being viewed in Repositories 
 
 // ----- View switching -----
 function activateView(viewName: string) {
+  console.log('Activating view:', viewName);
   Object.entries(views).forEach(([name, view]) => {
     view.classList.toggle('active', name === viewName);
   });
@@ -328,20 +335,23 @@ createCloudBrowseBtn.addEventListener('click', async () => {
 createCloudBtn.addEventListener('click', async () => {
   const name = createCloudName.value.trim().replace(/\s+/g, '-');
   const folder = createCloudFolder.value.trim();
+  const username = createCloudUsername.value.trim();
+  const email = createCloudEmail.value.trim();
+  const token = createCloudToken.value.trim();
   if (!name) { createCloudStatus.textContent = 'Name is required.'; return; }
   if (!folder) { createCloudStatus.textContent = 'Select a folder.'; return; }
-
-  const creds = await window.electronAPI.getRepoCredentials(folder);
-  if (!creds || !creds.token) {
-    createCloudStatus.textContent = 'No credentials found. Set them in Repository Settings.';
+  if (!username || !email || !token) {
+    createCloudStatus.textContent = 'Username, email, and token are required.';
     return;
   }
+
   try {
     createCloudStatus.textContent = 'Creating repository on GitHub...';
-    const cloneUrl = await window.electronAPI.createRepo(name, creds.token);
+    const cloneUrl = await window.electronAPI.createRepo(name, token);
     const gitStatus = await window.electronAPI.checkGitStatus(folder);
     if (!gitStatus.isRepo) await window.electronAPI.initGitRepo(folder);
     await window.electronAPI.setRemote(folder, cloneUrl);
+    await window.electronAPI.saveRepoCredentials(folder, username, email, token);
     await window.electronAPI.setCurrentRepoPath(folder);
     await addRepoToManagedList(folder);
     await refreshRecentRepos();
@@ -387,13 +397,21 @@ linkCloudBrowseBtn.addEventListener('click', async () => {
 linkCloudBtn.addEventListener('click', async () => {
   const url = linkCloudUrl.value.trim();
   const dest = linkCloudFolder.value.trim();
+  const username = linkCloudUsername.value.trim();
+  const email = linkCloudEmail.value.trim();
+  const token = linkCloudToken.value.trim();
   if (!url || !dest) { linkCloudStatus.textContent = 'URL and destination are required.'; return; }
+  if (!username || !email || !token) {
+    linkCloudStatus.textContent = 'Username, email, and token are required.';
+    return;
+  }
   try {
     linkCloudStatus.textContent = 'Cloning...';
-    await window.electronAPI.cloneRepo(url, dest);
+    await window.electronAPI.cloneRepo(url, dest, token);
     const info = await window.electronAPI.getRepoInfo(dest);
     currentRepoPath = dest;
     currentRemoteUrl = info.remoteUrl;
+    await window.electronAPI.saveRepoCredentials(dest, username, email, token);
     await window.electronAPI.setCurrentRepoPath(dest);
     await addRepoToManagedList(dest);
     await refreshRecentRepos();
