@@ -256,7 +256,8 @@ async function navigateToRepo(folder: string) {
 // "+ New" button: open the new-repo page
 newRepoBtn.addEventListener('click', () => {
   activateView('newrepo');
-  // Reset to first tab
+  // Reset to first tab and clear all inputs
+  clearNewRepoInputs();
   activateNewRepoTab('create');
 });
 
@@ -279,6 +280,8 @@ function activateNewRepoTab(tabName: string) {
   Object.entries(newRepoPanes).forEach(([name, pane]) => {
     pane.classList.toggle('active', name === tabName);
   });
+  // Clear all inputs and statuses
+  clearNewRepoInputs();
   // Reset sub‑tabs to first
   if (tabName === 'create') activateSubTab(subTabsCreate, subPanesCreate, 'local');
   if (tabName === 'link') activateSubTab(subTabsLink, subPanesLink, 'link-local');
@@ -287,6 +290,17 @@ function activateNewRepoTab(tabName: string) {
 function activateSubTab(tabs: NodeListOf<Element>, panes: Record<string, HTMLElement>, key: string) {
   tabs.forEach(t => t.classList.toggle('active', t.getAttribute('data-sub-tab') === key));
   Object.entries(panes).forEach(([name, pane]) => pane.classList.toggle('active', name === key));
+}
+
+function clearNewRepoInputs() {
+  // Clear all text/email/password inputs inside the new repo page
+  document.querySelectorAll('#new-repo-view input').forEach(input => {
+    (input as HTMLInputElement).value = '';
+  });
+  // Clear all status messages
+  document.querySelectorAll('#new-repo-view .status-msg').forEach(el => {
+    (el as HTMLElement).textContent = '';
+  });
 }
 
 // Sub‑tab click handlers
